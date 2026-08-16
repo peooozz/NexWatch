@@ -1,34 +1,58 @@
-import { Camera, Alert, DailyStat, AlertEventType, AlertStatus } from "./types";
+import { Camera, Alert, DailyStat, AlertEventType, AlertStatus, AlertSeverity, AlertVehicleDetails } from "./types";
 
-// ── Cameras ──────────────────────────────────────────────────────────
+// ── Cameras in Nagpur Smart City Grid ──────────────────────────────────
 export const cameras: Camera[] = [
   {
     id: "CAM-001",
     name: "Wardha Road Junction",
+    zone: "South Arterial Corridor",
     location: { lat: 21.1256, lng: 79.0725 },
     status: "online",
     fps: 30,
+    resolution: "3840×2160 (4K)",
+    bitrate: "8.4 Mbps",
+    bearing: 145,
+    fovAngle: 78,
+    lensType: "Varifocal 4.8-120mm PTZ",
   },
   {
     id: "CAM-002",
-    name: "Sitabuldi Square",
+    name: "Sitabuldi Metro Interchange",
+    zone: "Central Business District",
     location: { lat: 21.1458, lng: 79.0882 },
     status: "online",
-    fps: 25,
+    fps: 30,
+    resolution: "1920×1080 (FHD)",
+    bitrate: "6.2 Mbps",
+    bearing: 42,
+    fovAngle: 90,
+    lensType: "Wide Fixed 2.8mm",
   },
   {
     id: "CAM-003",
-    name: "Dharampeth Circle",
+    name: "Dharampeth Traffic Circle",
+    zone: "West Commercial Sector",
     location: { lat: 21.1432, lng: 79.0652 },
     status: "online",
     fps: 30,
+    resolution: "2560×1440 (2K)",
+    bitrate: "7.1 Mbps",
+    bearing: 260,
+    fovAngle: 85,
+    lensType: "Motorized 3.6-11mm",
   },
   {
     id: "CAM-004",
-    name: "Ambazari Lake Road",
+    name: "Ambazari Lake Promenade",
+    zone: "Public Recreation Perimeter",
     location: { lat: 21.1349, lng: 79.0498 },
     status: "online",
-    fps: 28,
+    fps: 25,
+    resolution: "1920×1080 (FHD)",
+    bitrate: "5.5 Mbps",
+    bearing: 210,
+    fovAngle: 110,
+    lensType: "Panoramic 180° Multi-sensor",
   },
 ];
 
@@ -45,105 +69,160 @@ function pad(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
-let alertCounter = 100;
+let alertCounter = 120;
 
-const EVENT_TYPES: AlertEventType[] = [
-  "illegal_parking",
-  "illegal_parking",
-  "illegal_parking",
-  "loitering",
-  "loitering",
-  "wrong_way",
-  "crowd_density",
+const EVENT_CONFIGS: {
+  type: AlertEventType;
+  severity: AlertSeverity;
+  label: string;
+  defaultClass: AlertVehicleDetails["objectClass"];
+}[] = [
+  { type: "illegal_parking", severity: "high", label: "Illegal Parking (Red Zone)", defaultClass: "Sedan" },
+  { type: "illegal_parking", severity: "medium", label: "Illegal Parking (Bus Lane)", defaultClass: "SUV" },
+  { type: "wrong_way", severity: "critical", label: "Wrong-Way Vehicle Entry", defaultClass: "Motorcycle" },
+  { type: "wrong_way", severity: "critical", label: "Contraflow Driving Detected", defaultClass: "Sedan" },
+  { type: "speed_violation", severity: "high", label: "Speed Limit Violation (82 km/h)", defaultClass: "SUV" },
+  { type: "loitering", severity: "medium", label: "Prolonged Loitering (> 180s)", defaultClass: "Pedestrian" },
+  { type: "crowd_density", severity: "critical", label: "Surge Crowd Density (> 85 pax/100m²)", defaultClass: "Crowd Group" },
+  { type: "restricted_perimeter", severity: "high", label: "Perimeter Geo-fence Breach", defaultClass: "Truck" },
 ];
 
-const EVENT_LABELS: Record<AlertEventType, string> = {
+export const EVENT_LABELS: Record<AlertEventType, string> = {
   illegal_parking: "Illegal Parking",
   loitering: "Loitering Detected",
   wrong_way: "Wrong-Way Movement",
   crowd_density: "Crowd Density Alert",
+  speed_violation: "Speed Violation",
+  restricted_perimeter: "Perimeter Breach",
 };
 
 export function getEventLabel(type: AlertEventType): string {
-  return EVENT_LABELS[type];
+  return EVENT_LABELS[type] || "Incident Detected";
 }
 
-// snapshot placeholder (colored SVG data URI per event type)
-const SNAPSHOT_COLORS: Record<AlertEventType, string> = {
-  illegal_parking: "%23FF4D4F",
-  loitering: "%23F5A623",
-  wrong_way: "%230084FF",
-  crowd_density: "%233DD68C",
-};
+const VEHICLE_MAKES = ["Tata Harrier", "Mahindra XUV700", "Hyundai Creta", "Maruti Brezza", "Toyota Innova", "Honda City", "Royal Enfield 350", "Bajaj Pulsar"];
+const VEHICLE_COLORS = ["Pearl White", "Obsidian Black", "Metallic Silver", "Deep Crimson", "Navy Blue", "Charcoal Grey"];
 
-function snapshotUrl(eventType: AlertEventType): string {
-  const c = SNAPSHOT_COLORS[eventType];
-  return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect fill='%23181C25' width='320' height='180'/><rect x='40' y='30' width='100' height='60' rx='4' fill='none' stroke='${c}' stroke-width='2' stroke-dasharray='6'/><text x='160' y='100' fill='${c}' font-size='11' font-family='monospace' text-anchor='middle'>CCTV Frame</text></svg>`;
+function generateVehicleMetadata(objectClass: AlertVehicleDetails["objectClass"]): AlertVehicleDetails {
+  if (objectClass === "Pedestrian" || objectClass === "Crowd Group") {
+    return {
+      objectClass,
+      durationInZoneSec: randomInt(45, 360),
+    };
+  }
+
+  const series = randomItem(["CB", "EK", "DW", "AX", "BN", "FR"]);
+  const plateNum = randomInt(1000, 9999);
+  const plate = `MH 31 ${series} ${plateNum}`;
+
+  return {
+    objectClass,
+    make: randomItem(VEHICLE_MAKES),
+    color: randomItem(VEHICLE_COLORS),
+    licensePlate: plate,
+    plateConfidence: parseFloat((0.88 + Math.random() * 0.11).toFixed(2)),
+    speedKmph: objectClass === "Motorcycle" ? randomInt(48, 76) : randomInt(28, 85),
+    durationInZoneSec: randomInt(35, 420),
+  };
+}
+
+// Tactical SVG Snapshot Data URI
+export function generateSnapshotUri(
+  eventType: AlertEventType,
+  camName: string,
+  trackId: string,
+  plate?: string
+): string {
+  const accent =
+    eventType === "wrong_way" || eventType === "crowd_density"
+      ? "%23FF3B30" // Critical Red
+      : eventType === "speed_violation" || eventType === "illegal_parking"
+      ? "%23FF9500" // Warning Amber
+      : "%23007AFF"; // Info Blue
+
+  const label = getEventLabel(eventType).toUpperCase();
+
+  return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='360' viewBox='0 0 640 360'><defs><linearGradient id='scan' x1='0%25' y1='0%25' x2='0%25' y2='100%25'><stop offset='0%25' stop-color='rgba(0,0,0,0.8)'/><stop offset='50%25' stop-color='rgba(15,23,42,0.95)'/><stop offset='100%25' stop-color='rgba(0,0,0,0.85)'/></linearGradient><pattern id='tgrid' width='30' height='30' patternUnits='userSpaceOnUse'><path d='M 30 0 L 0 0 0 30' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/></pattern></defs><rect width='640' height='360' fill='url(%23scan)'/><rect width='640' height='360' fill='url(%23tgrid)'/><path d='M20 50 L20 20 L50 20 M590 20 L620 20 L620 50 M20 310 L20 340 L50 340 M590 340 L620 340 L620 310' fill='none' stroke='${accent}' stroke-width='2' opacity='0.7'/><polygon points='80,110 240,90 270,270 60,290' fill='rgba(0,122,255,0.08)' stroke='%23007AFF' stroke-width='1.5' stroke-dasharray='6 4'/><text x='90' y='130' fill='%23007AFF' font-size='10' font-family='monospace' letter-spacing='1'>ZONE: GEOFENCE-A1</text><rect x='300' y='120' width='190' height='130' fill='rgba(255,59,48,0.1)' stroke='${accent}' stroke-width='2' rx='2'/><path d='M300 120 L315 120 M300 120 L300 135 M490 120 L475 120 M490 120 L490 135 M300 250 L315 250 M300 250 L300 235 M490 250 L475 250 M490 250 L490 235' fill='none' stroke='white' stroke-width='2'/><rect x='300' y='96' width='190' height='22' fill='${accent}' rx='2'/><text x='308' y='111' fill='white' font-size='10' font-family='monospace' font-weight='bold'>[${trackId}] ${label.slice(0, 18)}</text>${plate ? `<rect x='330' y='215' width='130' height='22' fill='white' rx='2'/><text x='395' y='230' fill='black' font-size='10' font-family='monospace' font-weight='bold' text-anchor='middle'>${plate}</text>` : ""}<circle cx='395' cy='185' r='6' fill='none' stroke='${accent}' stroke-width='1.5'/><line x1='380' y1='185' x2='410' y2='185' stroke='${accent}' stroke-width='1'/><line x1='395' y1='170' x2='395' y2='200' stroke='${accent}' stroke-width='1'/><rect x='20' y='320' width='600' height='24' fill='rgba(0,0,0,0.6)' rx='4'/><text x='30' y='336' fill='white' font-size='9' font-family='monospace' opacity='0.8'>CAM: ${camName.toUpperCase()} | AI NODE-04 [YOLOv11x-OPTICAL] | LAT: 21.1458 LNG: 79.0882</text></svg>`;
 }
 
 export function generateAlert(overrides?: Partial<Alert>): Alert {
   alertCounter++;
   const cam = randomItem(cameras);
-  const eventType = randomItem(EVENT_TYPES);
+  const cfg = randomItem(EVENT_CONFIGS);
   const now = new Date();
-  const detectedOffset = randomInt(0, 120); // seconds ago
+  const detectedOffset = randomInt(0, 90); // seconds ago
   const detectedAt = new Date(now.getTime() - detectedOffset * 1000);
-  const latencyMs = Math.random() < 0.15
-    ? randomInt(25000, 32000) // occasional spike
-    : randomInt(3000, 18000); // normal range
+  const latencyMs = Math.random() < 0.12
+    ? randomInt(22000, 31000) // occasional network lag
+    : randomInt(2100, 11000); // optimal pipeline speed
   const deliveredAt = new Date(detectedAt.getTime() + latencyMs);
+  const trackId = `TRK-${randomInt(200, 999)}`;
+  const vehicle = generateVehicleMetadata(cfg.defaultClass);
 
   return {
     id: `ALT-${alertCounter}`,
     cameraId: cam.id,
     cameraName: cam.name,
-    eventType,
-    confidence: parseFloat((0.72 + Math.random() * 0.26).toFixed(2)),
-    trackId: `TRK-${randomInt(100, 999)}`,
+    eventType: cfg.type,
+    severity: cfg.severity,
+    confidence: parseFloat((0.78 + Math.random() * 0.21).toFixed(2)),
+    trackId,
     detectedAt: detectedAt.toISOString(),
     deliveredAt: deliveredAt.toISOString(),
     latencyMs,
     status: "new",
-    snapshotUrl: snapshotUrl(eventType),
+    vehicleDetails: vehicle,
+    snapshotUrl: generateSnapshotUri(cfg.type, cam.name, trackId, vehicle.licensePlate),
     ...overrides,
   };
 }
 
-// ── Initial Seed Alerts (last 24 h) ─────────────────────────────────
-export function generateSeedAlerts(count = 25): Alert[] {
+// ── Initial Seed Alerts ────────────────────────────────────────────────
+export function generateSeedAlerts(count = 28): Alert[] {
   const alerts: Alert[] = [];
   const now = Date.now();
   const statuses: AlertStatus[] = [
-    "new", "acknowledged", "resolved", "resolved",
-    "acknowledged", "false_positive", "resolved",
+    "new", "new", "acknowledged", "resolved", "resolved",
+    "acknowledged", "false_positive", "resolved", "new"
   ];
 
   for (let i = 0; i < count; i++) {
-    const hoursAgo = Math.random() * 24;
+    const hoursAgo = Math.random() * 18;
     const detectedAt = new Date(now - hoursAgo * 3600000);
-    const latencyMs = Math.random() < 0.12
-      ? randomInt(25000, 32000)
-      : randomInt(2000, 15000);
+    const latencyMs = Math.random() < 0.1
+      ? randomInt(24000, 31000)
+      : randomInt(2200, 12000);
     const deliveredAt = new Date(detectedAt.getTime() + latencyMs);
     const status = randomItem(statuses);
     const cam = randomItem(cameras);
-    const eventType = randomItem(EVENT_TYPES);
+    const cfg = randomItem(EVENT_CONFIGS);
+    const trackId = `TRK-${randomInt(100, 999)}`;
+    const vehicle = generateVehicleMetadata(cfg.defaultClass);
 
     alertCounter++;
     alerts.push({
       id: `ALT-${alertCounter}`,
       cameraId: cam.id,
       cameraName: cam.name,
-      eventType,
-      confidence: parseFloat((0.72 + Math.random() * 0.26).toFixed(2)),
-      trackId: `TRK-${randomInt(100, 999)}`,
+      eventType: cfg.type,
+      severity: cfg.severity,
+      confidence: parseFloat((0.76 + Math.random() * 0.22).toFixed(2)),
+      trackId,
       detectedAt: detectedAt.toISOString(),
       deliveredAt: deliveredAt.toISOString(),
       latencyMs,
       status,
-      snapshotUrl: snapshotUrl(eventType),
-      acknowledgedBy: status !== "new" ? randomItem(["Operator A", "Operator B", "Admin"]) : undefined,
-      resolvedAt: status === "resolved" ? new Date(deliveredAt.getTime() + randomInt(30000, 300000)).toISOString() : undefined,
+      vehicleDetails: vehicle,
+      snapshotUrl: generateSnapshotUri(cfg.type, cam.name, trackId, vehicle.licensePlate),
+      acknowledgedBy: status !== "new" ? randomItem(["Operator-Desk-1", "Chief-Dispatcher", "Automated-Triage"]) : undefined,
+      resolvedAt: status === "resolved" ? new Date(deliveredAt.getTime() + randomInt(20000, 240000)).toISOString() : undefined,
+      dispatchedUnit: status === "acknowledged" && Math.random() > 0.5 ? {
+        unitName: "PCR Van #08 (Sitabuldi)",
+        unitType: "PCR Patrol",
+        dispatchedAt: new Date(deliveredAt.getTime() + 15000).toISOString(),
+        etaMinutes: randomInt(2, 6),
+        status: "en_route",
+      } : undefined,
     });
   }
 
@@ -152,7 +231,7 @@ export function generateSeedAlerts(count = 25): Alert[] {
   );
 }
 
-// ── Daily Stats (last 7 days) ────────────────────────────────────────
+// ── Daily Stats ──────────────────────────────────────────────────────
 export function generateDailyStats(): DailyStat[] {
   const stats: DailyStat[] = [];
   const now = new Date();
@@ -166,7 +245,7 @@ export function generateDailyStats(): DailyStat[] {
       const hourly: { hour: number; count: number }[] = [];
       let total = 0;
       for (let h = 0; h < 24; h++) {
-        const count = h >= 6 && h <= 22 ? randomInt(0, 8) : randomInt(0, 2);
+        const count = h >= 7 && h <= 21 ? randomInt(1, 9) : randomInt(0, 2);
         hourly.push({ hour: h, count });
         total += count;
       }
@@ -175,9 +254,9 @@ export function generateDailyStats(): DailyStat[] {
         cameraId: cam.id,
         date: dateStr,
         totalAlerts: total,
-        avgLatencyMs: randomInt(4000, 16000),
-        falsePositiveRate: parseFloat((Math.random() * 0.18).toFixed(3)),
-        resolvedRate: parseFloat((0.75 + Math.random() * 0.23).toFixed(3)),
+        avgLatencyMs: randomInt(3500, 14000),
+        falsePositiveRate: parseFloat((Math.random() * 0.14).toFixed(3)),
+        resolvedRate: parseFloat((0.82 + Math.random() * 0.16).toFixed(3)),
         hourlyBreakdown: hourly,
       });
     }

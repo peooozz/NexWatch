@@ -21,7 +21,8 @@ import {
   TrendingDown,
   Activity,
   Download,
-  ChevronDown,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -32,42 +33,44 @@ function KpiCard({
   value,
   icon: Icon,
   color,
+  sublabel,
   mono,
 }: {
   label: string;
   value: string;
   icon: React.ElementType;
   color: string;
+  sublabel?: string;
   mono?: boolean;
 }) {
   return (
     <div
-      className="rounded-xl border p-4 scanline-texture"
+      className="rounded-xl border p-4 scanline-texture relative overflow-hidden"
       style={{
         background: "var(--bg-surface)",
         borderColor: "var(--border-subtle)",
       }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <span
-          className="text-xs font-medium uppercase tracking-wider"
-          style={{ color: "var(--text-muted)" }}
-        >
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-mono-data uppercase tracking-wider text-gray-400">
           {label}
         </span>
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: `${color}15` }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center border"
+          style={{ background: `${color}15`, borderColor: `${color}30` }}
         >
-          <Icon size={16} style={{ color }} />
+          <Icon size={15} style={{ color }} />
         </div>
       </div>
       <p
-        className={`text-2xl font-semibold ${mono ? "font-mono-data" : ""}`}
+        className={`text-2xl font-bold ${mono ? "font-mono-data" : ""}`}
         style={{ color: "var(--text-primary)" }}
       >
         {value}
       </p>
+      {sublabel && (
+        <p className="text-[10px] font-mono-data text-gray-500 mt-1">{sublabel}</p>
+      )}
     </div>
   );
 }
@@ -126,7 +129,7 @@ export default function AnalyticsPage() {
       s.hourlyBreakdown.forEach((h) => (hourTotals[h.hour] += h.count))
     );
     const maxIdx = hourTotals.indexOf(Math.max(...hourTotals));
-    return `${maxIdx.toString().padStart(2, "0")}:00`;
+    return `${maxIdx.toString().padStart(2, "0")}:00 hrs`;
   }, [todayStats, selectedCamera]);
 
   // Hourly chart data
@@ -183,6 +186,7 @@ export default function AnalyticsPage() {
       return {
         camera: cam.name,
         id: cam.id,
+        zone: cam.zone,
         totalAlerts,
         avgLatency: avgLat,
         resolvedRate,
@@ -191,24 +195,18 @@ export default function AnalyticsPage() {
     });
   }, [dailyStats]);
 
-  const lineColors = ["#0084FF", "#F5A623", "#3DD68C", "#A855F7"];
+  const lineColors = ["#00E5FF", "#FF9500", "#10B981", "#A855F7"];
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-6">
-      {/* Top Bar: Date picker + Camera selector */}
+      {/* Top Bar: Selector + Export */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1
-            className="text-xl font-medium"
-            style={{ color: "var(--text-primary)" }}
-          >
-            Analytics
+          <h1 className="text-xl font-semibold text-white">
+            Surveillance Intelligence & Analytics
           </h1>
-          <p
-            className="text-sm"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Performance metrics and alert trends
+          <p className="text-xs text-gray-400 font-mono-data">
+            Detection metrics, false positive rates, and 7-day municipal trend breakdown
           </p>
         </div>
 
@@ -216,31 +214,21 @@ export default function AnalyticsPage() {
           <select
             value={selectedCamera}
             onChange={(e) => setSelectedCamera(e.target.value)}
-            className="rounded-lg px-3 py-2 text-xs outline-none cursor-pointer"
-            style={{
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border-subtle)",
-              color: "var(--text-primary)",
-            }}
+            className="rounded-lg px-3 py-2 text-xs font-mono-data bg-[#141924] border border-[#1E2638] text-white outline-none cursor-pointer"
           >
-            <option value="all">All Cameras</option>
+            <option value="all">All Camera Sectors</option>
             {cameras.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {c.name} ({c.id})
               </option>
             ))}
           </select>
 
           <button
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium cursor-pointer"
-            style={{
-              background: "rgba(0,132,255,0.15)",
-              color: "var(--accent-primary)",
-              border: "1px solid rgba(0,132,255,0.2)",
-            }}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-mono-data font-semibold bg-[#0091FF]/15 text-[#00E5FF] border border-[#0091FF]/30 hover:bg-[#0091FF]/25 transition-colors cursor-pointer"
           >
-            <Download size={12} />
-            Export Report (PDF)
+            <Download size={13} />
+            Export Intel PDF
           </button>
         </div>
       </div>
@@ -248,30 +236,34 @@ export default function AnalyticsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          label="Total Alerts Today"
+          label="Total Incidents (Today)"
           value={totalAlertsToday.toString()}
           icon={AlertTriangle}
-          color="var(--accent-red)"
+          color="#FF3B30"
+          sublabel="Real-time edge detections"
         />
         <KpiCard
-          label="Avg Alert Latency"
-          value={`${(avgLatency / 1000).toFixed(1)}s`}
+          label="Avg Pipeline Latency"
+          value={`${(avgLatency / 1000).toFixed(2)}s`}
           icon={Clock}
-          color="var(--accent-primary)"
+          color="#00E5FF"
           mono
+          sublabel="Camera to operator triage"
         />
         <KpiCard
           label="False Positive Rate"
           value={`${(falsePositiveRate * 100).toFixed(1)}%`}
           icon={TrendingDown}
-          color="var(--accent-amber)"
+          color="#FF9500"
+          sublabel="AI accuracy benchmark"
         />
         <KpiCard
-          label="Peak Alert Hour"
+          label="Peak Activity Window"
           value={peakHour}
           icon={Activity}
-          color="var(--accent-green)"
+          color="#10B981"
           mono
+          sublabel="Traffic density peak"
         />
       </div>
 
@@ -285,35 +277,36 @@ export default function AnalyticsPage() {
             borderColor: "var(--border-subtle)",
           }}
         >
-          <h3
-            className="text-sm font-medium mb-4"
-            style={{ color: "var(--text-primary)" }}
-          >
-            Alerts Per Hour (Today)
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-semibold uppercase font-mono-data text-white">
+              Hourly Incident Distribution (Today)
+            </h3>
+            <span className="text-[10px] font-mono-data text-gray-500">24-HOUR BINS</span>
+          </div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={hourlyData}>
-              <CartesianGrid stroke="#232733" strokeDasharray="3 3" />
+              <CartesianGrid stroke="#1E2638" strokeDasharray="3 3" />
               <XAxis
                 dataKey="hour"
-                tick={{ fill: "#5A6172", fontSize: 10 }}
+                tick={{ fill: "#64748B", fontSize: 10, fontFamily: "monospace" }}
                 interval={3}
               />
-              <YAxis tick={{ fill: "#5A6172", fontSize: 10 }} />
+              <YAxis tick={{ fill: "#64748B", fontSize: 10, fontFamily: "monospace" }} />
               <Tooltip
                 contentStyle={{
-                  background: "#181C25",
-                  border: "1px solid #232733",
+                  background: "#0E121A",
+                  border: "1px solid #1E2638",
                   borderRadius: 8,
-                  color: "#E6E8EC",
-                  fontSize: 12,
+                  color: "#F0F3F8",
+                  fontSize: 11,
+                  fontFamily: "monospace",
                 }}
               />
               <Bar
                 dataKey="alerts"
-                fill="#0084FF"
+                fill="#0091FF"
                 radius={[4, 4, 0, 0]}
-                maxBarSize={24}
+                maxBarSize={20}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -327,31 +320,32 @@ export default function AnalyticsPage() {
             borderColor: "var(--border-subtle)",
           }}
         >
-          <h3
-            className="text-sm font-medium mb-4"
-            style={{ color: "var(--text-primary)" }}
-          >
-            7-Day Alert Trend
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-semibold uppercase font-mono-data text-white">
+              7-Day Sector Trend Analysis
+            </h3>
+            <span className="text-[10px] font-mono-data text-gray-500">PER-NODE FREQUENCY</span>
+          </div>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={trendData}>
-              <CartesianGrid stroke="#232733" strokeDasharray="3 3" />
+              <CartesianGrid stroke="#1E2638" strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
-                tick={{ fill: "#5A6172", fontSize: 10 }}
+                tick={{ fill: "#64748B", fontSize: 10, fontFamily: "monospace" }}
               />
-              <YAxis tick={{ fill: "#5A6172", fontSize: 10 }} />
+              <YAxis tick={{ fill: "#64748B", fontSize: 10, fontFamily: "monospace" }} />
               <Tooltip
                 contentStyle={{
-                  background: "#181C25",
-                  border: "1px solid #232733",
+                  background: "#0E121A",
+                  border: "1px solid #1E2638",
                   borderRadius: 8,
-                  color: "#E6E8EC",
-                  fontSize: 12,
+                  color: "#F0F3F8",
+                  fontSize: 11,
+                  fontFamily: "monospace",
                 }}
               />
               <Legend
-                wrapperStyle={{ fontSize: 10, color: "#8B93A3" }}
+                wrapperStyle={{ fontSize: 10, fontFamily: "monospace", color: "#94A3B8" }}
               />
               {cameras.map((cam, i) => (
                 <Line
@@ -368,7 +362,7 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Data Table */}
+      {/* Sector Performance Data Table */}
       <div
         className="rounded-xl border overflow-hidden scanline-texture"
         style={{
@@ -380,57 +374,35 @@ export default function AnalyticsPage() {
           <table className="w-full text-xs">
             <thead>
               <tr
-                className="border-b"
+                className="border-b bg-[#090C13] text-[10px] font-mono-data uppercase tracking-wider text-gray-400"
                 style={{ borderColor: "var(--border-subtle)" }}
               >
                 {[
-                  "Camera",
-                  "Total Alerts (7d)",
-                  "Avg Latency",
-                  "Resolved %",
-                  "False Positive %",
+                  "Sector / Camera Node",
+                  "7-Day Total Incidents",
+                  "Avg Pipeline Latency",
+                  "Resolution Efficiency",
+                  "False Positive Rate",
                 ].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left px-4 py-3 font-medium"
-                    style={{ color: "var(--text-muted)" }}
-                  >
+                  <th key={h} className="text-left px-4 py-3 font-semibold">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[#1E2638]">
               {tableData.map((row) => (
                 <tr
                   key={row.id}
-                  className="border-b last:border-b-0 transition-colors"
-                  style={{ borderColor: "var(--border-subtle)" }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background =
-                      "var(--bg-surface-raised)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "transparent")
-                  }
+                  className="hover:bg-[#141924]/60 transition-colors"
                 >
                   <td className="px-4 py-3">
-                    <div>
-                      <span style={{ color: "var(--text-primary)" }}>
-                        {row.camera}
-                      </span>
-                      <span
-                        className="font-mono-data ml-2"
-                        style={{ color: "var(--text-muted)" }}
-                      >
-                        {row.id}
-                      </span>
+                    <div className="font-medium text-white">{row.camera}</div>
+                    <div className="text-[10px] text-gray-400 font-mono-data">
+                      {row.id} · {row.zone}
                     </div>
                   </td>
-                  <td
-                    className="px-4 py-3 font-mono-data"
-                    style={{ color: "var(--text-primary)" }}
-                  >
+                  <td className="px-4 py-3 font-mono-data text-white font-semibold">
                     {row.totalAlerts}
                   </td>
                   <td className="px-4 py-3 font-mono-data">
@@ -438,25 +410,19 @@ export default function AnalyticsPage() {
                       style={{
                         color:
                           row.avgLatency < 15000
-                            ? "var(--accent-green)"
+                            ? "#10B981"
                             : row.avgLatency < 30000
-                            ? "var(--accent-amber)"
-                            : "var(--accent-red)",
+                            ? "#FF9500"
+                            : "#FF3B30",
                       }}
                     >
-                      {(row.avgLatency / 1000).toFixed(1)}s
+                      {(row.avgLatency / 1000).toFixed(2)}s
                     </span>
                   </td>
-                  <td
-                    className="px-4 py-3 font-mono-data"
-                    style={{ color: "var(--accent-green)" }}
-                  >
+                  <td className="px-4 py-3 font-mono-data text-[#10B981] font-semibold">
                     {(row.resolvedRate * 100).toFixed(1)}%
                   </td>
-                  <td
-                    className="px-4 py-3 font-mono-data"
-                    style={{ color: "var(--accent-amber)" }}
-                  >
+                  <td className="px-4 py-3 font-mono-data text-[#FF9500]">
                     {(row.fpRate * 100).toFixed(1)}%
                   </td>
                 </tr>

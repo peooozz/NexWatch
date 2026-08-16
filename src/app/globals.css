@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fustat:wght@700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fustat:wght@700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 /* ══ Global Reset & Base ═══════════════════════════════════════════════ */
@@ -9,11 +9,14 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   margin: 0;
+  background-color: #07090e;
+  color: #e6e8ec;
 }
 
 /* ══ Typography Utilities ═════════════════════════════════════════════ */
@@ -24,22 +27,25 @@ body {
 
 .font-mono-data {
   font-family: "JetBrains Mono", "Fira Code", monospace;
-  font-weight: 400;
 }
 
 /* ══ Dashboard CSS Variables (scoped) ════════════════════════════════ */
 .dashboard-theme {
-  --bg-base: #0b0e14;
-  --bg-surface: #12151c;
-  --bg-surface-raised: #181c25;
-  --border-subtle: #232733;
-  --text-primary: #e6e8ec;
-  --text-secondary: #8b93a3;
-  --text-muted: #5a6172;
-  --accent-primary: #0084ff;
-  --accent-amber: #f5a623;
-  --accent-red: #ff4d4f;
-  --accent-green: #3dd68c;
+  --bg-base: #07090e;
+  --bg-surface: #0e121a;
+  --bg-surface-raised: #141924;
+  --bg-surface-high: #1c2333;
+  --border-subtle: #1e2638;
+  --border-active: #2a374f;
+  --text-primary: #f0f3f8;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-primary: #0091ff;
+  --accent-cyan: #00e5ff;
+  --accent-amber: #ff9500;
+  --accent-red: #ff3b30;
+  --accent-green: #10b981;
+  --accent-purple: #a855f7;
 }
 
 /* ══ Dashboard Scanline Texture ══════════════════════════════════════ */
@@ -54,77 +60,142 @@ body {
     );
 }
 
+.grid-bg-subtle {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* ══ Vision Mode Shaders & Filters ═══════════════════════════════════ */
+.vision-optical {
+  filter: none;
+}
+
+.vision-thermal {
+  filter: invert(0.85) hue-rotate(185deg) saturate(320%) contrast(150%) brightness(1.1);
+}
+
+.vision-night {
+  filter: sepia(100%) hue-rotate(75deg) saturate(450%) brightness(1.2) contrast(140%);
+}
+
+.vision-wireframe {
+  filter: invert(1) grayscale(100%) contrast(300%) brightness(0.9);
+}
+
 /* ══ Landing Page Glass Effects ══════════════════════════════════════ */
 .glass-navbar {
   backdrop-filter: blur(50px);
   -webkit-backdrop-filter: blur(50px);
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: inset 0px 4px 4px 0px rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0px 1px 1px 0px rgba(255, 255, 255, 0.15);
   border-radius: 16px;
 }
 
 .glass-button {
   backdrop-filter: blur(50px);
   -webkit-backdrop-filter: blur(50px);
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: inset 0px 4px 4px 0px rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 999px;
 }
 
 .cta-primary {
-  background: rgba(0, 132, 255, 0.8);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  border-radius: 16px;
-  box-shadow: inset 0px 4px 4px 0px rgba(255, 255, 255, 0.35);
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  background: linear-gradient(135deg, #0084ff, #0055d4);
+  box-shadow: 0 4px 20px rgba(0, 132, 255, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  transition: all 200ms ease;
 }
 
 .cta-primary:hover {
-  transform: scale(1.02);
-  box-shadow:
-    inset 0px 4px 4px 0px rgba(255, 255, 255, 0.35),
-    0 8px 32px rgba(0, 132, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(0, 132, 255, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
 }
 
-/* ══ Live Pulse ══════════════════════════════════════════════════════ */
+/* ══ Radar Sweep Animation ═══════════════════════════════════════════ */
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-radar-sweep {
+  animation: radar-sweep 4s linear infinite;
+  transform-origin: center center;
+}
+
+/* ══ Live Pulse & Glowing Beacons ════════════════════════════════════ */
 @keyframes live-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.92); }
 }
 
 .animate-live-pulse {
   animation: live-pulse 2s ease-in-out infinite;
 }
 
-/* ══ Glow Ring for New Alerts ════════════════════════════════════════ */
+@keyframes beacon-ping {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+.animate-beacon-ping {
+  animation: beacon-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
 @keyframes glow-ring {
-  0% { box-shadow: 0 0 0 0 rgba(0, 132, 255, 0.5); }
-  70% { box-shadow: 0 0 0 8px rgba(0, 132, 255, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 132, 255, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
 }
 
 .animate-glow-ring {
-  animation: glow-ring 1.5s ease-out;
+  animation: glow-ring 1.8s ease-out infinite;
+}
+
+/* ══ Tactical Crosshairs & Corner Accents ════════════════════════════ */
+.tactical-border {
+  position: relative;
+}
+
+.tactical-border::before,
+.tactical-border::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: var(--accent-primary);
+  pointer-events: none;
+}
+
+.tactical-border::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+
+.tactical-border::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
 }
 
 /* ══ Scrollbar (dashboard) ═══════════════════════════════════════════ */
 .dashboard-theme ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 .dashboard-theme ::-webkit-scrollbar-track {
-  background: var(--bg-base);
+  background: #07090e;
 }
 
 .dashboard-theme ::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
-  border-radius: 3px;
+  background: #1e2638;
+  border-radius: 4px;
 }
 
 .dashboard-theme ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: #2a374f;
 }
