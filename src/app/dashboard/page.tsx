@@ -80,6 +80,13 @@ function timeAgo(iso: string): string {
   return `${hrs}h ago`;
 }
 
+const CAMERA_VIDEOS: Record<string, string> = {
+  "CAM-001": "/videos/cam1.mp4",
+  "CAM-002": "/videos/cam2.mp4",
+  "CAM-003": "/videos/cam3.mp4",
+  "CAM-004": "/videos/cam4.mp4",
+};
+
 /* ═══════════════════════════════════════════════════════════════════════
    CAMERA STREAM TILE
    ═══════════════════════════════════════════════════════════════════════ */
@@ -106,6 +113,9 @@ function CameraTile({
     (a) => a.cameraId === camera.id && a.status === "new"
   );
 
+  const videoSource = camera.streamUrl || CAMERA_VIDEOS[camera.id] || "/videos/cam1.mp4";
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
   useEffect(() => {
     const tick = () => {
       const now = new Date();
@@ -116,6 +126,14 @@ function CameraTile({
     const id = setInterval(tick, 64);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.play().catch((err) => {
+        console.warn("Video autoplay prevented:", err);
+      });
+    }
+  }, [videoSource]);
 
   const triggerSnapshot = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -139,7 +157,7 @@ function CameraTile({
 
       {/* Camera Header */}
       <div
-        className="flex items-center justify-between px-3 py-2 border-b bg-[#0B0F17]/90 flex-shrink-0"
+        className="flex items-center justify-between px-3 py-2 border-b bg-[#0B0F17]/90 flex-shrink-0 relative z-10"
         style={{ borderColor: "var(--border-subtle)" }}
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -170,38 +188,28 @@ function CameraTile({
 
       {/* Viewport with Shaders & Dynamic AI HUD */}
       <div
-        className={`relative aspect-video bg-[#05070B] overflow-hidden flex-1 cursor-crosshair vision-${visionMode}`}
+        className={`relative aspect-video bg-black overflow-hidden flex-1 cursor-crosshair vision-${visionMode}`}
       >
-        {/* Synthetic CCTV Canvas Frame */}
+        {/* HTML5 Infinite Looping Video Stream */}
+        <video
+          ref={videoRef}
+          key={videoSource}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="absolute inset-0 w-full h-full object-cover z-0"
+        >
+          <source src={videoSource} type="video/mp4" />
+        </video>
+
+        {/* Tactical Crosshair corner marks & OSD Overlay */}
         <svg
           viewBox="0 0 640 360"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover pointer-events-none relative z-10"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <defs>
-            <linearGradient id={`grad-${camera.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#0B0F17" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#06080D" stopOpacity="0.95" />
-            </linearGradient>
-            <pattern
-              id={`grid-pat-${camera.id}`}
-              width="32"
-              height="32"
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                d="M 32 0 L 0 0 0 32"
-                fill="none"
-                stroke="rgba(255,255,255,0.025)"
-                strokeWidth="1"
-              />
-            </pattern>
-          </defs>
-
-          {/* Background & Grid */}
-          <rect width="640" height="360" fill={`url(#grad-${camera.id})`} />
-          <rect width="640" height="360" fill={`url(#grid-pat-${camera.id})`} />
-
           {/* Tactical Crosshair corner marks */}
           <path
             d="M 16 36 L 16 16 L 36 16 M 604 16 L 624 16 L 624 36 M 16 324 L 16 344 L 36 344 M 604 344 L 624 344 L 624 324"
@@ -212,114 +220,6 @@ function CameraTile({
 
           {showOverlays && (
             <>
-              {/* Geofence Detection Zone */}
-              <polygon
-                points="70,110 240,90 270,270 50,290"
-                fill="rgba(0, 145, 255, 0.06)"
-                stroke="#0091FF"
-                strokeWidth="1.5"
-                strokeDasharray="6 4"
-                opacity="0.85"
-              />
-              <text
-                x="80"
-                y="130"
-                fill="#0091FF"
-                fontSize="10"
-                fontFamily="JetBrains Mono, monospace"
-                fontWeight="bold"
-                letterSpacing="1"
-              >
-                GEOFENCE: RED ZONE [NO-PARKING]
-              </text>
-
-              {/* Dynamic Target 1: Detected Vehicle */}
-              <g transform="translate(310, 110)">
-                <rect
-                  x="0"
-                  y="0"
-                  width="180"
-                  height="125"
-                  fill="rgba(255, 59, 48, 0.08)"
-                  stroke={activeAlert ? "#FF3B30" : "#FF9500"}
-                  strokeWidth="2"
-                  rx="2"
-                />
-                {/* Header Tag */}
-                <rect
-                  x="0"
-                  y="-22"
-                  width="180"
-                  height="22"
-                  fill={activeAlert ? "#FF3B30" : "#FF9500"}
-                  rx="2"
-                />
-                <text
-                  x="6"
-                  y="-7"
-                  fill="white"
-                  fontSize="10"
-                  fontFamily="JetBrains Mono, monospace"
-                  fontWeight="bold"
-                >
-                  {activeAlert ? `[${activeAlert.trackId}] SEDAN · 94%` : "[TRK-492] SEDAN · 92%"}
-                </text>
-
-                {/* Corner reticles */}
-                <path
-                  d="M 0 10 L 0 0 L 10 0 M 170 0 L 180 0 L 180 10 M 0 115 L 0 125 L 10 125 M 170 125 L 180 125 L 180 115"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="1.5"
-                />
-
-                {/* Velocity / Dwell Vector */}
-                <line
-                  x1="90"
-                  y1="62"
-                  x2="90"
-                  y2="135"
-                  stroke="#FF3B30"
-                  strokeWidth="2"
-                  strokeDasharray="4 2"
-                />
-                <circle cx="90" cy="135" r="3" fill="#FF3B30" />
-                <text
-                  x="98"
-                  y="138"
-                  fill="#FF3B30"
-                  fontSize="9"
-                  fontFamily="JetBrains Mono, monospace"
-                >
-                  DWELL: 48s
-                </text>
-              </g>
-
-              {/* Dynamic Target 2: Pedestrian / Motion Tracker */}
-              <g transform="translate(130, 160)">
-                <rect
-                  x="0"
-                  y="0"
-                  width="45"
-                  height="90"
-                  fill="none"
-                  stroke="#10B981"
-                  strokeWidth="1.5"
-                  strokeDasharray="3 3"
-                  rx="2"
-                />
-                <rect x="0" y="-16" width="65" height="15" fill="rgba(16, 185, 129, 0.85)" rx="2" />
-                <text
-                  x="4"
-                  y="-5"
-                  fill="white"
-                  fontSize="8"
-                  fontFamily="JetBrains Mono, monospace"
-                >
-                  PED · 88%
-                </text>
-              </g>
-
               {/* Center PTZ reticle */}
               <circle
                 cx="320"

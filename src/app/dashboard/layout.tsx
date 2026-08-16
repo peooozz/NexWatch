@@ -133,7 +133,7 @@ function DashboardNav() {
             >
               {link.label}
               {link.href === "/dashboard" && criticalAlertsCount > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[9px] font-mono-data font-bold bg-[#FF3B30] text-white animate-live-pulse">
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-mono-data font-bold bg-[#FF3B30] text-white animate-live-pulse">
                   {criticalAlertsCount}
                 </span>
               )}
