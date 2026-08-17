@@ -112,6 +112,7 @@ function CameraTile({
   const alerts = useDashboardStore((s) => s.alerts);
   const [time, setTime] = useState("");
   const [msTime, setMsTime] = useState("000");
+  const [playbackSec, setPlaybackSec] = useState<number>(0);
   const [showOverlays, setShowOverlays] = useState(true);
   const [isFlashing, setIsFlashing] = useState(false);
   const [ptzAngle, setPtzAngle] = useState({ pan: 0, tilt: 0, zoom: 1 });
@@ -134,9 +135,10 @@ function CameraTile({
       const now = new Date();
       setTime(now.toLocaleTimeString("en-IN", { hour12: false }));
       setMsTime(now.getMilliseconds().toString().padStart(3, "0"));
+      setPlaybackSec((Date.now() / 1000) % 60);
     };
     tick();
-    const id = setInterval(tick, 64);
+    const id = setInterval(tick, 50);
     return () => clearInterval(id);
   }, []);
 
@@ -263,150 +265,190 @@ function CameraTile({
             </g>
           )}
 
-          {/* Real-time Tactical AI Bounding Box Overlays (Camera-Specific Auto-Rickshaw & Traffic HUD) */}
-          {isCvActive && (
-            <g>
-              {/* CAM-001 (Wardha Road 4-Way Junction) */}
-              {camera.id === "CAM-001" && (
-                <g>
-                  {/* Auto-Rickshaw */}
-                  <rect x="110" y="130" width="160" height="120" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
-                  <path d="M 110 145 L 110 130 L 125 130 M 270 145 L 270 130 L 255 130 M 110 235 L 110 250 L 125 250 M 270 235 L 270 250 L 255 250" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
-                  <rect x="110" y="110" width="160" height="18" fill="#FB923C" rx="2" />
-                  <text x="116" y="123" fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [AUTO-101] 🛺 AUTO-RICKSHAW 98%
-                  </text>
-                  <rect x="115" y="228" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
-                  <text x="120" y="239" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    MH 31 TA 1204 · 32 km/h
-                  </text>
+          {/* Real-time Tactical AI Bounding Box Overlays (Continuous Multi-Object Tracking Engine) */}
+          {isCvActive && (() => {
+            const sec = playbackSec;
+            return (
+              <g>
+                {/* CAM-001 (Wardha Road 4-Way Junction) */}
+                {camera.id === "CAM-001" && (() => {
+                  const a1_x = 60 + ((sec * 22) % 360);
+                  const a1_y = 120 + ((sec * 10) % 90);
+                  const s1_x = 420 - ((sec * 28) % 340);
+                  const s1_y = 135 + ((sec * 8) % 70);
+                  return (
+                    <g>
+                      {/* Auto-Rickshaw */}
+                      <rect x={a1_x} y={a1_y} width="150" height="110" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                      <path d={`M ${a1_x} ${a1_y + 15} L ${a1_x} ${a1_y} L ${a1_x + 15} ${a1_y} M ${a1_x + 150} ${a1_y + 15} L ${a1_x + 150} ${a1_y} L ${a1_x + 135} ${a1_y} M ${a1_x} ${a1_y + 95} L ${a1_x} ${a1_y + 110} L ${a1_x + 15} ${a1_y + 110} M ${a1_x + 150} ${a1_y + 95} L ${a1_x + 150} ${a1_y + 110} L ${a1_x + 135} ${a1_y + 110}`} stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+                      <rect x={a1_x} y={a1_y - 18} width="160" height="18" fill="#FB923C" rx="2" />
+                      <text x={a1_x + 6} y={a1_y - 5} fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [AUTO-101] 🛺 AUTO-RICKSHAW 98%
+                      </text>
+                      <rect x={a1_x + 6} y={a1_y + 88} width="95" height="15" fill="#000000" opacity="0.85" rx="2" />
+                      <text x={a1_x + 10} y={a1_y + 99} fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        MH 31 TA 1204 · {Math.floor(30 + (sec % 5))} km/h
+                      </text>
 
-                  {/* Sedan */}
-                  <rect x="330" y="140" width="180" height="120" fill="rgba(0, 229, 255, 0.08)" stroke="#00E5FF" strokeWidth="1.5" rx="2" />
-                  <rect x="330" y="122" width="140" height="16" fill="#00E5FF" rx="2" />
-                  <text x="336" y="134" fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [SEDAN-102] CAR 94% · 48 km/h
-                  </text>
-                </g>
-              )}
+                      {/* Sedan */}
+                      <rect x={s1_x} y={s1_y} width="170" height="115" fill="rgba(0, 229, 255, 0.08)" stroke="#00E5FF" strokeWidth="1.5" rx="2" />
+                      <rect x={s1_x} y={s1_y - 16} width="140" height="16" fill="#00E5FF" rx="2" />
+                      <text x={s1_x + 6} y={s1_y - 4} fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [SEDAN-102] CAR 94% · 48 km/h
+                      </text>
+                    </g>
+                  );
+                })()}
 
-              {/* CAM-002 (Sitabuldi Metro Interchange) */}
-              {camera.id === "CAM-002" && (
-                <g>
-                  {/* Auto-Rickshaw */}
-                  <rect x="80" y="140" width="165" height="125" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
-                  <path d="M 80 155 L 80 140 L 95 140 M 245 155 L 245 140 L 230 140 M 80 250 L 80 265 L 95 265 M 245 250 L 245 265 L 230 265" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
-                  <rect x="80" y="120" width="165" height="18" fill="#FB923C" rx="2" />
-                  <text x="86" y="133" fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [AUTO-204] 🛺 AUTO-RICKSHAW 99%
-                  </text>
-                  <rect x="85" y="242" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
-                  <text x="90" y="253" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    MH 31 TB 7820 · 28 km/h
-                  </text>
+                {/* CAM-002 (Sitabuldi Metro Interchange) */}
+                {camera.id === "CAM-002" && (() => {
+                  const a2_x = 50 + ((sec * 20) % 360);
+                  const a2_y = 130 + Math.sin(sec * 1.2) * 12;
+                  const b2_x = 380 - ((sec * 35) % 320);
+                  const b2_y = 160 + Math.cos(sec * 1.5) * 15;
+                  return (
+                    <g>
+                      {/* Auto-Rickshaw */}
+                      <rect x={a2_x} y={a2_y} width="155" height="115" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                      <path d={`M ${a2_x} ${a2_y + 15} L ${a2_x} ${a2_y} L ${a2_x + 15} ${a2_y} M ${a2_x + 155} ${a2_y + 15} L ${a2_x + 155} ${a2_y} L ${a2_x + 140} ${a2_y}`} stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+                      <rect x={a2_x} y={a2_y - 18} width="165" height="18" fill="#FB923C" rx="2" />
+                      <text x={a2_x + 6} y={a2_y - 5} fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [AUTO-204] 🛺 AUTO-RICKSHAW 99%
+                      </text>
+                      <rect x={a2_x + 6} y={a2_y + 92} width="95" height="15" fill="#000000" opacity="0.85" rx="2" />
+                      <text x={a2_x + 10} y={a2_y + 103} fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        MH 31 TB 7820 · 28 km/h
+                      </text>
 
-                  {/* Two-Wheeler */}
-                  <rect x="290" y="160" width="110" height="100" fill="rgba(16, 185, 129, 0.12)" stroke="#10B981" strokeWidth="1.5" rx="2" />
-                  <rect x="290" y="144" width="110" height="15" fill="#10B981" rx="2" />
-                  <text x="294" y="155" fill="#000000" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [MTR-205] BIKE 91%
-                  </text>
-                </g>
-              )}
+                      {/* Two-Wheeler */}
+                      <rect x={b2_x} y={b2_y} width="95" height="90" fill="rgba(16, 185, 129, 0.12)" stroke="#10B981" strokeWidth="1.5" rx="2" />
+                      <rect x={b2_x} y={b2_y - 15} width="105" height="15" fill="#10B981" rx="2" />
+                      <text x={b2_x + 4} y={b2_y - 4} fill="#000000" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [MTR-205] BIKE 91%
+                      </text>
+                    </g>
+                  );
+                })()}
 
-              {/* CAM-003 (Dharampeth Traffic Circle - Bombay Traffic Footage) */}
-              {camera.id === "CAM-003" && (
-                <g>
-                  {/* Auto-Rickshaw 1 (Left Corridor) */}
-                  <rect x="60" y="145" width="160" height="120" fill="rgba(251, 146, 60, 0.14)" stroke="#FB923C" strokeWidth="2" rx="2" />
-                  <path d="M 60 160 L 60 145 L 75 145 M 220 160 L 220 145 L 205 145 M 60 250 L 60 265 L 75 265 M 220 250 L 220 265 L 205 265" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
-                  <rect x="60" y="125" width="160" height="18" fill="#FB923C" rx="2" />
-                  <text x="66" y="138" fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [AUTO-301] 🛺 AUTO-RICKSHAW 99.1%
-                  </text>
-                  <rect x="65" y="242" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
-                  <text x="70" y="253" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    MH 31 TC 3341 · 36 km/h
-                  </text>
+                {/* CAM-003 (Dharampeth Traffic Circle - Bombay Traffic Footage) */}
+                {camera.id === "CAM-003" && (() => {
+                  const auto1_x = 40 + ((sec * 24) % 360);
+                  const auto1_y = 140 + ((sec * 8) % 80);
+                  const auto2_x = 220 + ((sec * 18) % 300);
+                  const auto2_y = 120 + Math.sin(sec * 1.4) * 15;
+                  const bus_x = 480 - ((sec * 20) % 380);
+                  const bus_y = 110 + ((sec * 6) % 60);
+                  return (
+                    <g>
+                      {/* Auto-Rickshaw 1 (Left Lane Moving) */}
+                      <rect x={auto1_x} y={auto1_y} width="155" height="115" fill="rgba(251, 146, 60, 0.14)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                      <path d={`M ${auto1_x} ${auto1_y + 15} L ${auto1_x} ${auto1_y} L ${auto1_x + 15} ${auto1_y} M ${auto1_x + 155} ${auto1_y + 15} L ${auto1_x + 155} ${auto1_y} L ${auto1_x + 140} ${auto1_y}`} stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+                      <rect x={auto1_x} y={auto1_y - 18} width="165" height="18" fill="#FB923C" rx="2" />
+                      <text x={auto1_x + 6} y={auto1_y - 5} fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [AUTO-301] 🛺 AUTO-RICKSHAW 99%
+                      </text>
+                      <rect x={auto1_x + 6} y={auto1_y + 92} width="95" height="15" fill="#000000" opacity="0.85" rx="2" />
+                      <text x={auto1_x + 10} y={auto1_y + 103} fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        MH 31 TC 3341 · {Math.floor(32 + (sec % 6))} km/h
+                      </text>
 
-                  {/* Auto-Rickshaw 2 (Center Lane) */}
-                  <rect x="250" y="135" width="155" height="115" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
-                  <rect x="250" y="117" width="155" height="17" fill="#FB923C" rx="2" />
-                  <text x="256" y="129" fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [AUTO-302] 🛺 AUTO-RICKSHAW 98.4%
-                  </text>
-                  <rect x="255" y="228" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
-                  <text x="260" y="239" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    MH 31 TR 8819 · 30 km/h
-                  </text>
+                      {/* Auto-Rickshaw 2 (Turning Right in Circle) */}
+                      <rect x={auto2_x} y={auto2_y} width="145" height="110" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                      <rect x={auto2_x} y={auto2_y - 17} width="155" height="17" fill="#FB923C" rx="2" />
+                      <text x={auto2_x + 6} y={auto2_y - 5} fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [AUTO-302] 🛺 AUTO-RICKSHAW 98%
+                      </text>
+                      <rect x={auto2_x + 6} y={auto2_y + 88} width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
+                      <text x={auto2_x + 10} y={auto2_y + 99} fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        MH 31 TR 8819 · 28 km/h
+                      </text>
 
-                  {/* Bus in right lane */}
-                  <rect x="435" y="115" width="165" height="135" fill="rgba(236, 72, 153, 0.1)" stroke="#EC4899" strokeWidth="1.5" rx="2" />
-                  <rect x="435" y="97" width="130" height="17" fill="#EC4899" rx="2" />
-                  <text x="440" y="109" fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [BUS-303] BEST BUS 96%
-                  </text>
-                </g>
-              )}
+                      {/* Red BEST Bus */}
+                      <rect x={bus_x} y={bus_y} width="165" height="135" fill="rgba(236, 72, 153, 0.1)" stroke="#EC4899" strokeWidth="1.5" rx="2" />
+                      <rect x={bus_x} y={bus_y - 17} width="130" height="17" fill="#EC4899" rx="2" />
+                      <text x={bus_x + 6} y={bus_y - 5} fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [BUS-303] BEST BUS 96%
+                      </text>
+                    </g>
+                  );
+                })()}
 
-              {/* CAM-004 (Ambazari Lake Promenade - Andheri Station Traffic Chaos Footage) */}
-              {camera.id === "CAM-004" && (
-                <g>
-                  {/* Auto-Rickshaw 1 (Front Queue) */}
-                  <rect x="75" y="130" width="170" height="130" fill="rgba(251, 146, 60, 0.14)" stroke="#FB923C" strokeWidth="2" rx="2" />
-                  <path d="M 75 145 L 75 130 L 90 130 M 245 145 L 245 130 L 230 130 M 75 245 L 75 260 L 90 260 M 245 245 L 245 260 L 230 260" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
-                  <rect x="75" y="110" width="170" height="18" fill="#FB923C" rx="2" />
-                  <text x="81" y="123" fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [AUTO-401] 🛺 AUTO-RICKSHAW 98.8%
-                  </text>
-                  <rect x="80" y="238" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
-                  <text x="85" y="249" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    MH 31 TD 4902 · 18 km/h
-                  </text>
+                {/* CAM-004 (Ambazari Lake Promenade - Andheri Station Traffic Chaos Footage) */}
+                {camera.id === "CAM-004" && (() => {
+                  const auto1_x = 60 + ((sec * 16) % 320);
+                  const auto1_y = 125 + ((sec * 6) % 70);
+                  const auto2_x = 250 + ((sec * 14) % 260);
+                  const auto2_y = 140 + Math.sin(sec * 1.2) * 12;
+                  const ped_x = 460 + Math.sin(sec * 2) * 20;
+                  const ped_y = 150 + Math.cos(sec * 2) * 10;
+                  const car_x = 160 + ((sec * 18) % 320);
+                  const car_y = 180 + ((sec * 8) % 80);
+                  return (
+                    <g>
+                      {/* Auto-Rickshaw 1 (Front Queue Lead) */}
+                      <rect x={auto1_x} y={auto1_y} width="160" height="120" fill="rgba(251, 146, 60, 0.14)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                      <path d={`M ${auto1_x} ${auto1_y + 15} L ${auto1_x} ${auto1_y} L ${auto1_x + 15} ${auto1_y} M ${auto1_x + 160} ${auto1_y + 15} L ${auto1_x + 160} ${auto1_y} L ${auto1_x + 145} ${auto1_y}`} stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+                      <rect x={auto1_x} y={auto1_y - 18} width="165" height="18" fill="#FB923C" rx="2" />
+                      <text x={auto1_x + 6} y={auto1_y - 5} fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [AUTO-401] 🛺 AUTO-RICKSHAW 99%
+                      </text>
+                      <rect x={auto1_x + 6} y={auto1_y + 95} width="95" height="15" fill="#000000" opacity="0.85" rx="2" />
+                      <text x={auto1_x + 10} y={auto1_y + 106} fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        MH 31 TD 4902 · 18 km/h
+                      </text>
 
-                  {/* Auto-Rickshaw 2 (Turning Right) */}
-                  <rect x="270" y="145" width="160" height="120" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
-                  <rect x="270" y="127" width="160" height="17" fill="#FB923C" rx="2" />
-                  <text x="276" y="139" fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [AUTO-402] 🛺 AUTO-RICKSHAW 97.9%
-                  </text>
-                  <rect x="275" y="242" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
-                  <text x="280" y="253" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    MH 31 TE 6211 · 24 km/h
-                  </text>
+                      {/* Auto-Rickshaw 2 (Turning Right) */}
+                      <rect x={auto2_x} y={auto2_y} width="150" height="115" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                      <rect x={auto2_x} y={auto2_y - 17} width="160" height="17" fill="#FB923C" rx="2" />
+                      <text x={auto2_x + 6} y={auto2_y - 5} fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [AUTO-402] 🛺 AUTO-RICKSHAW 98%
+                      </text>
+                      <rect x={auto2_x + 6} y={auto2_y + 90} width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
+                      <text x={auto2_x + 10} y={auto2_y + 101} fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        MH 31 TE 6211 · 24 km/h
+                      </text>
 
-                  {/* Pedestrian Group */}
-                  <rect x="475" y="155" width="80" height="110" fill="rgba(255, 255, 255, 0.1)" stroke="#FFFFFF" strokeWidth="1.5" rx="2" />
-                  <rect x="475" y="139" width="80" height="15" fill="#FFFFFF" rx="2" />
-                  <text x="479" y="150" fill="#000000" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [PED-403] 93%
-                  </text>
-                </g>
-              )}
+                      {/* White Honda City Car */}
+                      <rect x={car_x} y={car_y} width="175" height="120" fill="rgba(0, 229, 255, 0.08)" stroke="#00E5FF" strokeWidth="1.5" rx="2" />
+                      <rect x={car_x} y={car_y - 16} width="145" height="16" fill="#00E5FF" rx="2" />
+                      <text x={car_x + 6} y={car_y - 4} fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [CAR-404] SEDAN 95% · 26 km/h
+                      </text>
 
-              {/* ACCIDENT / COLLISION IMPACT ZONE OVERLAY (Active on alert) */}
-              {activeAlert?.eventType === "accident_collision" && (
-                <g className="animate-pulse">
-                  <rect
-                    x="240"
-                    y="110"
-                    width="260"
-                    height="145"
-                    fill="rgba(255, 59, 48, 0.28)"
-                    stroke="#FF3B30"
-                    strokeWidth="3"
-                    strokeDasharray="6 3"
-                    rx="3"
-                  />
-                  <circle cx="370" cy="180" r="30" fill="rgba(255, 59, 48, 0.35)" stroke="#FF3B30" strokeWidth="2" />
-                  <rect x="240" y="85" width="260" height="22" fill="#FF3B30" rx="2" />
-                  <text x="370" y="100" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    💥 100% COLLISION VECTOR // DISPATCH EMS
-                  </text>
-                </g>
-              )}
-            </g>
-          )}
+                      {/* Pedestrian Group */}
+                      <rect x={ped_x} y={ped_y} width="70" height="100" fill="rgba(255, 255, 255, 0.1)" stroke="#FFFFFF" strokeWidth="1.5" rx="2" />
+                      <rect x={ped_x} y={ped_y - 15} width="75" height="15" fill="#FFFFFF" rx="2" />
+                      <text x={ped_x + 4} y={ped_y - 4} fill="#000000" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                        [PED-405] 93%
+                      </text>
+                    </g>
+                  );
+                })()}
+
+                {/* ACCIDENT / COLLISION IMPACT ZONE OVERLAY (Active on alert) */}
+                {activeAlert?.eventType === "accident_collision" && (
+                  <g className="animate-pulse">
+                    <rect
+                      x="240"
+                      y="110"
+                      width="260"
+                      height="145"
+                      fill="rgba(255, 59, 48, 0.28)"
+                      stroke="#FF3B30"
+                      strokeWidth="3"
+                      strokeDasharray="6 3"
+                      rx="3"
+                    />
+                    <circle cx="370" cy="180" r="30" fill="rgba(255, 59, 48, 0.35)" stroke="#FF3B30" strokeWidth="2" />
+                    <rect x="240" y="85" width="260" height="22" fill="#FF3B30" rx="2" />
+                    <text x="370" y="100" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                      💥 100% COLLISION VECTOR // DISPATCH EMS
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })()}
 
           {/* Center PTZ reticle */}
           <circle
