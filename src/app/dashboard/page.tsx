@@ -1249,6 +1249,53 @@ export default function DashboardPage() {
       });
   }, [alerts]);
 
+  // Automated 10-Minute Recurring Critical SOS WhatsApp Routine
+  useEffect(() => {
+    const sendPeriodicSOS = async () => {
+      const criticals = alerts.filter(
+        (a) =>
+          a.severity === "critical" ||
+          a.eventType === "accident_collision" ||
+          a.eventType === "stopped_vehicle_accident"
+      );
+      const chosen = criticals[Math.floor(Math.random() * criticals.length)] || alerts[0];
+      if (!chosen) return;
+
+      try {
+        const res = await fetch("/api/alerts/dispatch-whatsapp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            camera_id: chosen.cameraId,
+            camera_name: chosen.cameraName,
+            event_type: chosen.eventType,
+            severity: "critical",
+            confidence: chosen.confidence || 0.99,
+            track_id: chosen.trackId,
+            vehicle_details: chosen.vehicleDetails,
+            detected_at: new Date().toISOString(),
+            recipient_phone: "+919322166721",
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setAutoToast({
+            alert: chosen,
+            status: "delivered",
+            sid: data.sid,
+          });
+          setTimeout(() => setAutoToast(null), 8000);
+        }
+      } catch (err) {
+        console.error("10-min interval dispatch error:", err);
+      }
+    };
+
+    // Recurring 10 minutes interval (600,000 ms)
+    const interval = setInterval(sendPeriodicSOS, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [alerts]);
+
   const focusedCamera = cameras.find((c) => c.id === focusedCameraId) || cameras[0];
   const companionCameras = cameras.filter((c) => c.id !== focusedCameraId);
 
