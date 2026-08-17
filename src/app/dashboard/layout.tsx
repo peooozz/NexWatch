@@ -70,7 +70,7 @@ function DashboardNav() {
     { href: "/dashboard/analytics", label: "Analytics & Intel" },
     { href: "/dashboard/events", label: "Live Stream" },
     ...(role === "Admin" || role === "Chief Dispatcher"
-      ? [{ href: "/dashboard/admin", label: "Admin & Node Mgmt" }]
+      ? [{ href: "/dashboard/admin", label: "Admin & Nodes" }]
       : []),
   ];
 
@@ -88,20 +88,20 @@ function DashboardNav() {
     },
     {
       mode: "optical",
-      label: "Optical (Normal Video)",
-      description: "Clean Feed (All Boxes Removed)",
+      label: "Optical (Clean Feed)",
+      description: "Normal Camera Feed (No Overlays)",
       icon: Eye,
     },
     {
       mode: "thermal",
       label: "FLIR Thermal",
-      description: "Infrared Thermal Heat Spectrum",
+      description: "Infrared Thermal Spectrum",
       icon: Flame,
     },
     {
       mode: "night",
       label: "Phosphor NVG",
-      description: "Military Night Vision Filter",
+      description: "Night Vision Mode",
       icon: Moon,
     },
   ];
@@ -110,59 +110,57 @@ function DashboardNav() {
   const CurrentVisionIcon = currentVision.icon;
 
   return (
-    <header
-      className="sticky top-0 z-40 border-b flex items-center justify-between px-3 md:px-6 h-16 transition-colors"
-      style={{
-        background: "rgba(14, 18, 26, 0.94)",
-        borderColor: "var(--border-subtle)",
-        backdropFilter: "blur(16px)",
-      }}
-    >
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl flex items-center justify-between px-3 md:px-6 h-16 transition-colors shadow-xs">
       {/* LEFT: Branding & Node Info */}
       <div className="flex items-center gap-3 lg:gap-4">
         <Link
           href="/"
-          className="flex items-center gap-1 text-xs hover:text-white transition-colors group"
-          style={{ color: "var(--text-muted)" }}
+          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900 transition-colors group"
         >
           <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-          <span className="hidden sm:inline">Exit</span>
+          <span className="hidden sm:inline font-medium">Exit</span>
         </Link>
-        <div className="w-px h-5" style={{ background: "var(--border-subtle)" }} />
+        <div className="w-px h-5 bg-slate-200" />
 
         <div className="flex items-center gap-2.5">
-          <Logo size="sm" variant="dark" />
-          <div className="hidden xl:flex flex-col">
-            <span className="text-[10px] font-mono-data uppercase tracking-wider font-semibold text-[#00E5FF]">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#4F46E5] to-[#7C3AED] flex items-center justify-center text-white shadow-xs">
+            <Shield size={16} />
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-sm font-bold tracking-tight text-[#0F172A]">City</span>
+            <span className="text-sm font-extrabold tracking-tight bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] bg-clip-text text-transparent">Eye</span>
+          </div>
+
+          <div className="hidden xl:flex flex-col ml-2 pl-3 border-l border-slate-200">
+            <span className="text-[10px] font-mono-data uppercase tracking-wider font-bold text-[#6366F1]">
               HQ-NAGPUR // GRID-01
             </span>
-            <span className="text-[9px] font-mono-data text-gray-400">
-              AI ENGINE: YOLOv11x + ByteTrack
+            <span className="text-[9px] font-mono-data text-slate-500">
+              YOLOv11x + ByteTrack + Twilio
             </span>
           </div>
         </div>
       </div>
 
       {/* CENTER: Main Navigation Tabs */}
-      <nav className="hidden md:flex items-center gap-1.5 p-1 rounded-xl bg-[#07090E]/60 border border-[#1E2638]">
+      <nav className="hidden md:flex items-center gap-1 p-1 rounded-full bg-slate-100/80 border border-slate-200/80 shadow-inner">
         {navLinks.map((link) => {
           const active = pathname === link.href;
           return (
             <Link
               key={link.href}
               href={link.href}
-              className="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all relative"
-              style={{
-                color: active ? "#ffffff" : "var(--text-secondary)",
-                background: active ? "rgba(0, 145, 255, 0.2)" : "transparent",
-                border: active ? "1px solid rgba(0, 145, 255, 0.4)" : "1px solid transparent",
-              }}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all relative flex items-center ${
+                active
+                  ? "bg-white text-[#4F46E5] shadow-xs border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+              }`}
             >
               {link.label}
               {link.href === "/dashboard" && criticalAlertsCount > 0 && (
                 <span
                   suppressHydrationWarning
-                  className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-mono-data font-bold bg-[#FF3B30] text-white animate-live-pulse"
+                  className="ml-1.5 px-1.5 py-0.2 rounded-full text-[9px] font-mono-data font-bold bg-[#EF4444] text-white animate-pulse"
                 >
                   {criticalAlertsCount}
                 </span>
@@ -176,13 +174,13 @@ function DashboardNav() {
       <div className="flex items-center gap-2 md:gap-3">
         {/* Layout Switcher (only visible on dashboard view) */}
         {pathname === "/dashboard" && (
-          <div className="hidden sm:flex items-center p-0.5 rounded-lg bg-[#07090E] border border-[#1E2638]">
+          <div className="hidden sm:flex items-center p-0.5 rounded-lg bg-slate-100 border border-slate-200">
             <button
               onClick={() => setLayoutMode("grid")}
               className={`p-1.5 rounded-md text-xs transition-all cursor-pointer ${
                 layoutMode === "grid"
-                  ? "bg-[#0091FF]/25 text-[#00E5FF] border border-[#0091FF]/40 shadow-sm"
-                  : "text-gray-400 hover:text-white"
+                  ? "bg-white text-[#4F46E5] shadow-xs font-bold"
+                  : "text-slate-500 hover:text-slate-900"
               }`}
               title="2x2 Multi-Grid View"
             >
@@ -192,8 +190,8 @@ function DashboardNav() {
               onClick={() => setLayoutMode("focus")}
               className={`p-1.5 rounded-md text-xs transition-all cursor-pointer ${
                 layoutMode === "focus"
-                  ? "bg-[#0091FF]/25 text-[#00E5FF] border border-[#0091FF]/40 shadow-sm"
-                  : "text-gray-400 hover:text-white"
+                  ? "bg-white text-[#4F46E5] shadow-xs font-bold"
+                  : "text-slate-500 hover:text-slate-900"
               }`}
               title="Focus 1-Major + 3-Minor View"
             >
@@ -203,8 +201,8 @@ function DashboardNav() {
               onClick={() => setLayoutMode("map")}
               className={`p-1.5 rounded-md text-xs transition-all cursor-pointer ${
                 layoutMode === "map"
-                  ? "bg-[#0091FF]/25 text-[#00E5FF] border border-[#0091FF]/40 shadow-sm"
-                  : "text-gray-400 hover:text-white"
+                  ? "bg-white text-[#4F46E5] shadow-xs font-bold"
+                  : "text-slate-500 hover:text-slate-900"
               }`}
               title="Tactical GIS Satellite Map"
             >
@@ -217,30 +215,19 @@ function DashboardNav() {
         <div className="relative">
           <button
             onClick={() => setShowVisionMenu(!showVisionMenu)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono-data transition-all cursor-pointer border shadow-sm"
-            style={{
-              background: visionMode === "cv" ? "rgba(0, 229, 255, 0.15)" : "var(--bg-surface-raised)",
-              borderColor: visionMode === "cv" ? "rgba(0, 229, 255, 0.5)" : "var(--border-subtle)",
-              color: visionMode === "cv" ? "#00E5FF" : "var(--text-primary)",
-            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono-data transition-all cursor-pointer border bg-white border-slate-200 text-slate-800 shadow-xs hover:border-slate-300"
             title="Switch Vision Filter & Computer Vision AI"
           >
-            <CurrentVisionIcon size={13} className={visionMode === "cv" ? "text-[#00E5FF]" : "text-gray-400"} />
+            <CurrentVisionIcon size={13} className={visionMode === "cv" ? "text-[#4F46E5]" : "text-slate-500"} />
             <span className="hidden sm:inline font-medium">{currentVision.label}</span>
-            <ChevronDown size={11} className="text-gray-400" />
+            <ChevronDown size={11} className="text-slate-400" />
           </button>
 
           {showVisionMenu && (
-            <div
-              className="absolute right-0 mt-1.5 rounded-xl p-1.5 min-w-[240px] z-50 shadow-2xl border"
-              style={{
-                background: "var(--bg-surface-high)",
-                borderColor: "var(--border-subtle)",
-              }}
-            >
-              <div className="px-2.5 py-1 text-[10px] uppercase font-mono-data text-gray-400 font-semibold border-b border-[#1E2638] mb-1 flex items-center justify-between">
+            <div className="absolute right-0 mt-1.5 rounded-2xl p-1.5 min-w-[240px] z-50 shadow-xl border border-slate-200 bg-white/95 backdrop-blur-xl">
+              <div className="px-2.5 py-1 text-[10px] uppercase font-mono-data text-slate-400 font-bold border-b border-slate-100 mb-1 flex items-center justify-between">
                 <span>Sensor Spectrum & AI</span>
-                <span className="text-[9px] text-[#00E5FF]">YOLOv11</span>
+                <span className="text-[9px] text-[#4F46E5]">YOLOv11</span>
               </div>
               {visionModes.map((v) => {
                 const Icon = v.icon;
@@ -252,20 +239,18 @@ function DashboardNav() {
                       setVisionMode(v.mode);
                       setShowVisionMenu(false);
                     }}
-                    className="flex items-start gap-2.5 w-full text-left px-2.5 py-2 rounded-lg text-xs cursor-pointer transition-all mb-0.5"
-                    style={{
-                      background: active ? "rgba(0, 145, 255, 0.22)" : "transparent",
-                      border: active ? "1px solid rgba(0, 229, 255, 0.35)" : "1px solid transparent",
-                    }}
+                    className={`w-full flex items-start gap-2.5 p-2 rounded-xl text-left transition-all cursor-pointer ${
+                      active
+                        ? "bg-indigo-50 text-[#4F46E5] border border-indigo-200/60"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
                   >
-                    <Icon size={14} className={`mt-0.5 flex-shrink-0 ${active ? "text-[#00E5FF]" : "text-gray-400"}`} />
-                    <div className="flex flex-col min-w-0">
-                      <span className={`font-medium text-xs ${active ? "text-[#00E5FF]" : "text-white"}`}>
-                        {v.label}
-                      </span>
-                      <span className="text-[10px] text-gray-400 font-mono-data truncate">
+                    <Icon size={15} className={`mt-0.5 ${active ? "text-[#4F46E5]" : "text-slate-400"}`} />
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold leading-tight">{v.label}</div>
+                      <div className="text-[10px] text-slate-500 font-mono-data truncate mt-0.5">
                         {v.description}
-                      </span>
+                      </div>
                     </div>
                   </button>
                 );
@@ -274,114 +259,79 @@ function DashboardNav() {
           )}
         </div>
 
-        {/* Audio Toggle */}
+        {/* Audio Mute/Unmute Toggle */}
         <button
           onClick={toggleSoundAlerts}
-          className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+          className={`p-2 rounded-full border transition-all cursor-pointer shadow-xs ${
             soundAlerts
-              ? "bg-[#141924] border-[#1E2638] text-gray-300 hover:text-white"
-              : "bg-[#FF3B30]/10 border-[#FF3B30]/30 text-[#FF3B30]"
+              ? "bg-white border-slate-200 text-[#4F46E5]"
+              : "bg-slate-100 border-slate-200 text-slate-400"
           }`}
-          title={soundAlerts ? "Sound Alerts Active" : "Sound Alerts Muted"}
+          title={soundAlerts ? "Sound Alerts Active (Siren On)" : "Sound Alerts Muted"}
         >
           {soundAlerts ? <Volume2 size={13} /> : <VolumeX size={13} />}
         </button>
 
-        {/* System Telemetry Tag */}
-        <div
-          className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono-data"
-          style={{
-            background: "rgba(16, 185, 129, 0.08)",
-            color: "var(--accent-green)",
-            border: "1px solid rgba(16, 185, 129, 0.2)",
-          }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-live-pulse" />
-          <span>{onlineCams}/4 CAMS</span>
-          <span className="text-gray-500">|</span>
-          <span>16ms GPU</span>
+        {/* Live Clock Telemetry */}
+        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-[11px] font-mono-data text-slate-700">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span suppressHydrationWarning>{time || "LIVE"}</span>
+          <span className="text-[9px] text-slate-400">IST</span>
         </div>
 
-        {/* Role Switcher */}
+        {/* Role Switcher Pill */}
         <div className="relative">
           <button
             onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border"
-            style={{
-              background: "var(--bg-surface-raised)",
-              borderColor: "var(--border-subtle)",
-              color: "var(--text-primary)",
-            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition-all cursor-pointer border bg-white border-slate-200 text-slate-800 shadow-xs hover:border-slate-300"
           >
-            {role === "Admin" ? (
-              <ShieldCheck size={13} className="text-[#00E5FF]" />
-            ) : role === "Chief Dispatcher" ? (
-              <ShieldAlert size={13} className="text-[#FF9500]" />
-            ) : (
-              <Shield size={13} className="text-[#10B981]" />
-            )}
-            <span className="hidden sm:inline font-mono-data text-[11px]">{role}</span>
-            <ChevronDown size={10} className="text-gray-400" />
+            <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-[#4F46E5]">
+              <User size={12} />
+            </div>
+            <span className="hidden md:inline font-medium">{role}</span>
+            <ChevronDown size={11} className="text-slate-400" />
           </button>
 
           {showRoleMenu && (
-            <div
-              className="absolute right-0 mt-1 rounded-xl p-1.5 min-w-[160px] z-50 shadow-2xl border"
-              style={{
-                background: "var(--bg-surface-high)",
-                borderColor: "var(--border-subtle)",
-              }}
-            >
-              <div className="px-2 py-1 text-[10px] uppercase font-mono-data text-gray-400 font-semibold border-b border-[#1E2638] mb-1">
-                Access Level
+            <div className="absolute right-0 mt-1.5 rounded-2xl p-1.5 min-w-[200px] z-50 shadow-xl border border-slate-200 bg-white/95 backdrop-blur-xl">
+              <div className="px-2.5 py-1 text-[10px] uppercase font-mono-data text-slate-400 font-bold border-b border-slate-100 mb-1">
+                Operator Clearance
               </div>
-              {(["Operator", "Admin", "Chief Dispatcher"] as const).map((r) => (
+              {(["Chief Dispatcher", "Operator", "Field Unit", "Admin"] as UserRole[]).map((r) => (
                 <button
                   key={r}
                   onClick={() => {
                     setRole(r);
                     setShowRoleMenu(false);
                   }}
-                  className="flex items-center justify-between w-full text-left px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors"
-                  style={{
-                    background: r === role ? "rgba(0, 145, 255, 0.15)" : "transparent",
-                    color: r === role ? "#00E5FF" : "var(--text-secondary)",
-                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                    role === r
+                      ? "bg-indigo-50 text-[#4F46E5] font-semibold"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
                 >
                   <span>{r}</span>
-                  {r === role && <span className="w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />}
+                  {role === r && <ShieldCheck size={13} className="text-[#4F46E5]" />}
                 </button>
               ))}
             </div>
           )}
         </div>
-
-        {/* Time HUD */}
-        <span
-          className="hidden 2xl:block text-xs font-mono-data px-2.5 py-1 rounded bg-[#07090E] border border-[#1E2638]"
-          style={{ color: "#00E5FF" }}
-        >
-          {time} IST
-        </span>
       </div>
     </header>
   );
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  // Initialize simulated WebSocket telemetry bus for realistic traffic feeds
   useSimulatedSocket();
 
   return (
-    <div
-      className="dashboard-theme min-h-screen grid-bg-subtle"
-      style={{ background: "var(--bg-base)", color: "var(--text-primary)" }}
-    >
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col selection:bg-[#6366F1]/20 selection:text-[#4338CA]">
       <DashboardNav />
-      <main className="p-3 md:p-5 max-w-[1920px] mx-auto">{children}</main>
+      <main className="flex-1 p-3 md:p-4 overflow-hidden relative ambient-light-bg">
+        {children}
+      </main>
     </div>
   );
 }

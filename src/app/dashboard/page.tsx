@@ -215,32 +215,29 @@ function CameraTile({
       )}
 
       {/* Camera Header */}
-      <div
-        className="flex items-center justify-between px-3 py-2 border-b bg-[#0B0F17]/90 flex-shrink-0 relative z-10"
-        style={{ borderColor: "var(--border-subtle)" }}
-      >
+      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-white/90 backdrop-blur-md flex-shrink-0 relative z-10">
         <div className="flex items-center gap-2 min-w-0">
           <span
             className={`w-2 h-2 rounded-full flex-shrink-0 ${
-              camera.status === "online" ? "bg-[#10B981] animate-live-pulse" : "bg-[#FF3B30]"
+              camera.status === "online" ? "bg-[#10B981] animate-live-pulse" : "bg-[#EF4444]"
             }`}
           />
-          <span className="text-xs font-semibold text-white truncate">
+          <span className="text-xs font-bold text-slate-800 truncate">
             {camera.name}
           </span>
-          <span className="text-[10px] font-mono-data text-[#00E5FF] px-1.5 py-0.5 rounded bg-[#0091FF]/15 border border-[#0091FF]/30 hidden sm:inline">
+          <span className="text-[10px] font-mono-data text-[#4F46E5] px-1.5 py-0.2 rounded bg-indigo-50 border border-indigo-200/60 hidden sm:inline font-bold">
             {camera.id}
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {activeAlert && (
-            <span className="text-[9px] font-mono-data px-1.5 py-0.5 rounded font-bold bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/40 animate-live-pulse flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-ping" />
+            <span className="text-[9px] font-mono-data px-1.5 py-0.5 rounded font-bold bg-rose-50 text-rose-600 border border-rose-200 animate-pulse flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
               ALERT DETECTED
             </span>
           )}
-          <span className="text-[10px] font-mono-data text-gray-400 bg-[#141924] px-2 py-0.5 rounded border border-[#1E2638]">
+          <span className="text-[10px] font-mono-data text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
             {camera.fps} FPS · {camera.bitrate}
           </span>
         </div>
@@ -826,19 +823,15 @@ function TacticalCityMap({ onSelectCamera }: { onSelectCamera: (camId: string) =
 function AlertCard({
   alert,
   isNew,
-  onOpenWhatsApp,
 }: {
   alert: Alert;
   isNew?: boolean;
-  onOpenWhatsApp?: (alert: Alert) => void;
 }) {
   const setSelectedAlertId = useDashboardStore((s) => s.setSelectedAlertId);
   const updateAlertStatus = useDashboardStore((s) => s.updateAlertStatus);
   const dispatchUnit = useDashboardStore((s) => s.dispatchUnit);
 
   const severityColor = getSeverityColor(alert.severity);
-  const statusColor = getStatusColor(alert.status);
-  const latencyColor = getLatencyColor(alert.latencyMs);
 
   return (
     <motion.div
@@ -848,21 +841,21 @@ function AlertCard({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2 }}
       onClick={() => setSelectedAlertId(alert.id)}
-      className={`rounded-xl border p-3 transition-all cursor-pointer relative overflow-hidden group ${
+      className={`rounded-2xl border p-3.5 transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
         isNew
-          ? "border-[#FF3B30] bg-[#FF3B30]/5 shadow-[0_0_15px_rgba(255,59,48,0.15)] animate-border-pulse"
-          : "border-[#1E2638] bg-[#0E121A]/90 hover:border-[#0091FF]/50 hover:bg-[#141924]"
+          ? "border-rose-300 bg-rose-50/70 shadow-md shadow-rose-100 animate-pulse"
+          : "border-slate-200/90 bg-white/90 hover:border-indigo-300 hover:shadow-md hover:bg-white"
       }`}
     >
       {/* Severity Indicator Bar */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
+        className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl"
         style={{ background: severityColor }}
       />
 
       <div className="flex gap-3 items-start pl-1">
         {/* Thumbnail Preview with Keyframe Tag */}
-        <div className="relative w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-black/60 border border-[#1E2638]">
+        <div className="relative w-16 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-slate-900 border border-slate-200 shadow-xs">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={alert.snapshotUrl}
@@ -876,29 +869,29 @@ function AlertCard({
         </div>
 
         {/* Info Column */}
-        <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center justify-between gap-1">
-            <span className="text-xs font-semibold text-white truncate group-hover:text-[#00E5FF] transition-colors">
+            <span className="text-xs font-bold text-slate-900 truncate group-hover:text-[#4F46E5] transition-colors">
               {getEventLabel(alert.eventType)}
             </span>
-            <span className="text-[10px] font-mono-data text-gray-400 flex-shrink-0">
+            <span className="text-[10px] font-mono-data text-slate-400 flex-shrink-0">
               {timeAgo(alert.detectedAt)}
             </span>
           </div>
 
-          <div className="flex items-center gap-1 text-[11px] text-gray-400 truncate font-mono-data">
-            <span className="text-[#0091FF] font-medium">{alert.cameraId}</span>
+          <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate font-mono-data">
+            <span className="text-[#4F46E5] font-semibold">{alert.cameraId}</span>
             <span>·</span>
             <span className="truncate">{alert.cameraName}</span>
           </div>
 
           {alert.vehicleDetails && (
-            <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-mono-data">
+            <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-mono-data pt-0.5">
               <span
-                className={`px-1.5 py-0.5 rounded border ${
+                className={`px-1.5 py-0.5 rounded-md border font-medium ${
                   alert.vehicleDetails.objectClass === "Auto Rickshaw"
-                    ? "bg-[#FB923C]/20 border-[#FB923C]/60 text-[#FB923C]"
-                    : "bg-[#141924] border-[#1E2638] text-white"
+                    ? "bg-amber-50 border-amber-200 text-amber-700 font-bold"
+                    : "bg-slate-50 border-slate-200 text-slate-700"
                 }`}
               >
                 {alert.vehicleDetails.objectClass === "Auto Rickshaw"
@@ -906,7 +899,7 @@ function AlertCard({
                   : alert.vehicleDetails.objectClass}
               </span>
               {alert.vehicleDetails.licensePlate && (
-                <span className="px-1.5 py-0.5 rounded bg-white/10 text-[#00E5FF] font-bold border border-white/20">
+                <span className="px-1.5 py-0.5 rounded-md bg-indigo-50 text-[#4F46E5] font-bold border border-indigo-200/80">
                   {alert.vehicleDetails.licensePlate}
                 </span>
               )}
@@ -916,16 +909,13 @@ function AlertCard({
       </div>
 
       {alert.status === "new" && (
-        <div
-          className="flex border-t divide-x divide-[#1E2638] bg-[#0B0F17]/60 mt-2"
-          style={{ borderColor: "var(--border-subtle)" }}
-        >
+        <div className="flex border-t border-slate-100 bg-slate-50/80 rounded-b-xl -mx-3.5 -mb-3.5 mt-2.5 divide-x divide-slate-100">
           <button
             onClick={(e) => {
               e.stopPropagation();
               updateAlertStatus(alert.id, "acknowledged", "Operator");
             }}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-medium text-[#FF9500] hover:bg-[#FF9500]/10 transition-colors cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1 py-2 text-[10px] font-bold text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
           >
             <Eye size={11} />
             Ack
@@ -935,7 +925,7 @@ function AlertCard({
               e.stopPropagation();
               dispatchUnit(alert.id, "PCR Van #08", "PCR Patrol");
             }}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-medium text-[#00E5FF] hover:bg-[#00E5FF]/10 transition-colors cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1 py-2 text-[10px] font-bold text-[#4F46E5] hover:bg-indigo-50 transition-colors cursor-pointer"
           >
             <Send size={11} />
             Dispatch
@@ -945,7 +935,7 @@ function AlertCard({
               e.stopPropagation();
               updateAlertStatus(alert.id, "resolved", "Operator");
             }}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-medium text-[#10B981] hover:bg-[#10B981]/10 transition-colors cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1 py-2 text-[10px] font-bold text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
           >
             <Check size={11} />
             Resolve
@@ -988,22 +978,14 @@ function LiveAlertFeed() {
   const newAlertsCount = alerts.filter((a) => a.status === "new").length;
 
   return (
-    <div
-      className="rounded-xl border h-full flex flex-col scanline-texture"
-      style={{
-        background: "var(--bg-surface)",
-        borderColor: "var(--border-subtle)",
-      }}
-    >
-      <div
-        className="flex items-center justify-between px-3.5 py-2.5 border-b bg-[#0B0F17]/90 flex-shrink-0"
-        style={{ borderColor: "var(--border-subtle)" }}
-      >
+    <div className="rounded-2xl border border-slate-200/90 bg-white/85 backdrop-blur-xl h-full flex flex-col shadow-sm">
+      {/* Feed Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-white/90 rounded-t-2xl flex-shrink-0">
         <div className="flex items-center gap-2">
-          <Radio size={14} className="text-[#FF3B30] animate-live-pulse" />
-          <span className="text-xs font-semibold text-white">Live Incident Queue</span>
+          <Radio size={14} className="text-[#EF4444] animate-live-pulse" />
+          <span className="text-xs font-bold text-slate-800">Live Incident Queue</span>
           {newAlertsCount > 0 && (
-            <span className="px-1.5 py-0.5 text-[9px] font-mono-data font-bold rounded-full bg-[#FF3B30] text-white">
+            <span className="px-1.5 py-0.2 text-[9px] font-mono-data font-bold rounded-full bg-[#EF4444] text-white">
               {newAlertsCount}
             </span>
           )}
@@ -1012,7 +994,7 @@ function LiveAlertFeed() {
         {newAlertsCount > 0 && (
           <button
             onClick={acknowledgeAll}
-            className="flex items-center gap-1 text-[10px] font-mono-data text-[#00E5FF] hover:underline cursor-pointer"
+            className="flex items-center gap-1 text-[10px] font-mono-data font-bold text-[#4F46E5] hover:underline cursor-pointer"
           >
             <CheckCheck size={12} />
             Ack All
@@ -1020,27 +1002,28 @@ function LiveAlertFeed() {
         )}
       </div>
 
-      <div className="p-2.5 border-b bg-[#0E121A]/80 flex-shrink-0 space-y-2" style={{ borderColor: "var(--border-subtle)" }}>
+      {/* Filter / Search Bar */}
+      <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex-shrink-0 space-y-2">
         <div className="relative">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Filter by CCTV area, plate, or event..."
-            className="w-full pl-7 pr-3 py-1.5 rounded-lg bg-[#141924] border border-[#1E2638] text-xs text-white placeholder-gray-500 outline-none focus:border-[#0091FF] font-mono-data"
+            placeholder="Filter CCTV, plate, or event..."
+            className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#4F46E5] font-mono-data shadow-2xs"
           />
         </div>
 
-        <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
           {(["all", "new", "acknowledged", "resolved"] as const).map((st) => (
             <button
               key={st}
               onClick={() => setAlertFilter(st)}
-              className={`px-2 py-1 rounded-md text-[10px] font-mono-data uppercase transition-all cursor-pointer flex-shrink-0 ${
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono-data uppercase transition-all cursor-pointer flex-shrink-0 ${
                 alertFilter === st
-                  ? "bg-[#0091FF] text-white font-semibold"
-                  : "bg-[#141924] text-gray-400 hover:text-white border border-[#1E2638]"
+                  ? "bg-[#4F46E5] text-white font-bold shadow-xs"
+                  : "bg-white text-slate-600 hover:text-slate-900 border border-slate-200"
               }`}
             >
               {st}
@@ -1049,10 +1032,11 @@ function LiveAlertFeed() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
+      {/* Feed List */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
         <AnimatePresence initial={false}>
           {filteredAlerts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 text-xs font-mono-data">
+            <div className="text-center py-12 text-slate-400 text-xs font-mono-data">
               No matching incidents in queue
             </div>
           ) : (
@@ -1092,69 +1076,66 @@ function AlertDetailSheet() {
         className="fixed inset-0 z-50 flex justify-end"
         onClick={() => setSelectedId(null)}
       >
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" />
 
         <motion.div
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ type: "spring", damping: 26, stiffness: 300 }}
-          className="relative w-full max-w-lg h-full overflow-y-auto border-l flex flex-col"
-          style={{
-            background: "var(--bg-base)",
-            borderColor: "var(--border-subtle)",
-          }}
+          className="relative w-full max-w-lg h-full overflow-y-auto border-l border-slate-200 bg-white/95 backdrop-blur-2xl flex flex-col shadow-2xl text-slate-900"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-4 border-b border-[#1E2638] bg-[#0E121A] flex items-center justify-between sticky top-0 z-10">
+          {/* Header */}
+          <div className="p-4 border-b border-slate-100 bg-white flex items-center justify-between sticky top-0 z-10">
             <div>
-              <h3 className="text-sm font-semibold text-white">Incident Investigation</h3>
-              <p className="text-[10px] text-gray-400 font-mono-data">{alert.id}</p>
+              <h3 className="text-sm font-bold text-slate-900">Incident Investigation</h3>
+              <p className="text-[10px] text-slate-500 font-mono-data">{alert.id}</p>
             </div>
             <button
               onClick={() => setSelectedId(null)}
-              className="p-1.5 rounded-lg bg-[#141924] text-gray-400 hover:text-white border border-[#1E2638] cursor-pointer"
+              className="p-1.5 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-900 border border-slate-200 cursor-pointer"
             >
               <X size={16} />
             </button>
           </div>
 
           <div className="p-5 space-y-5 flex-1">
-            <div className="rounded-xl border border-[#1E2638] overflow-hidden bg-[#05070B]">
+            <div className="rounded-2xl border border-slate-200 overflow-hidden bg-black shadow-md">
               <img src={alert.snapshotUrl} alt="Incident Snapshot" className="w-full aspect-video object-cover" />
             </div>
 
-            <div className="rounded-xl border border-[#25D366]/30 p-3.5 bg-[#25D366]/5 flex items-center justify-between">
+            <div className="rounded-2xl border border-emerald-200 p-4 bg-emerald-50/70 flex items-center justify-between shadow-2xs">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#25D366]/20 border border-[#25D366]/40 flex items-center justify-center text-[#25D366]">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700">
                   <MessageSquare size={16} />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                     Twilio Automated WhatsApp SOS
-                    <span className="text-[9px] font-mono-data px-1.5 py-0.2 rounded bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/40">
+                    <span className="text-[9px] font-mono-data px-1.5 py-0.2 rounded-full bg-emerald-200/80 text-emerald-800 font-bold">
                       ACTIVE
                     </span>
                   </div>
-                  <div className="text-[10px] text-gray-400 font-mono-data">
-                    Recipient: <span className="text-[#25D366] font-bold">+91 93221 66721</span>
+                  <div className="text-[10px] text-slate-500 font-mono-data">
+                    Recipient: <span className="text-emerald-700 font-bold">+91 93221 66721</span>
                   </div>
                 </div>
               </div>
-              <span className="text-[10px] font-mono-data text-[#00E5FF] px-2 py-1 rounded bg-[#0091FF]/10 border border-[#0091FF]/30">
+              <span className="text-[10px] font-mono-data font-bold text-indigo-700 px-2 py-1 rounded-lg bg-indigo-50 border border-indigo-200">
                 Auto-Dispatched
               </span>
             </div>
 
-            <div className="rounded-xl border border-[#1E2638] p-4 bg-[#0E121A] space-y-3">
-              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+            <div className="rounded-2xl border border-slate-200 p-4 bg-slate-50/70 space-y-3">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Rapid Response / Patrol Dispatch
               </span>
               <div className="flex gap-2">
                 <select
                   value={selectedUnit}
                   onChange={(e) => setSelectedUnit(e.target.value)}
-                  className="flex-1 text-xs rounded-lg bg-[#141924] border border-[#1E2638] text-white px-2.5 py-1.5 outline-none font-mono-data"
+                  className="flex-1 text-xs rounded-xl bg-white border border-slate-200 text-slate-800 px-3 py-2 outline-none font-mono-data shadow-2xs"
                 >
                   <option>PCR Van #08 (Sitabuldi)</option>
                   <option>Traffic Interceptor #03</option>
@@ -1163,7 +1144,7 @@ function AlertDetailSheet() {
                 </select>
                 <button
                   onClick={() => dispatchUnit(alert.id, selectedUnit, "PCR Patrol")}
-                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#FF9500] text-black hover:bg-[#E08500] transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer shadow-xs"
                 >
                   Dispatch
                 </button>

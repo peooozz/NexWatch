@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fustat:wght@700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fustat:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 /* ══ Global Reset & Base ═══════════════════════════════════════════════ */
@@ -9,14 +9,15 @@
 
 html {
   scroll-behavior: smooth;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   margin: 0;
-  background-color: #07090e;
-  color: #e6e8ec;
+  background-color: #F8FAFC;
+  color: #0F172A;
+  overflow-x: hidden;
 }
 
 /* ══ Typography Utilities ═════════════════════════════════════════════ */
@@ -29,177 +30,122 @@ body {
   font-family: "JetBrains Mono", "Fira Code", monospace;
 }
 
-/* ══ Dashboard CSS Variables (scoped) ════════════════════════════════ */
+/* ══ Dashboard Light Glassmorphism Variables ═══════════════════════════ */
 .dashboard-theme {
-  --bg-base: #07090e;
-  --bg-surface: #0e121a;
-  --bg-surface-raised: #141924;
-  --bg-surface-high: #1c2333;
-  --border-subtle: #1e2638;
-  --border-active: #2a374f;
-  --text-primary: #f0f3f8;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent-primary: #0091ff;
-  --accent-cyan: #00e5ff;
-  --accent-amber: #ff9500;
-  --accent-red: #ff3b30;
-  --accent-green: #10b981;
-  --accent-purple: #a855f7;
+  --bg-base: #F8FAFC;
+  --bg-surface: rgba(255, 255, 255, 0.85);
+  --bg-surface-raised: #FFFFFF;
+  --bg-surface-high: #F1F5F9;
+  --border-subtle: rgba(226, 232, 240, 0.85);
+  --border-active: rgba(203, 213, 225, 1);
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --accent-primary: #6366F1;
+  --accent-cyan: #06B6D4;
+  --accent-amber: #F59E0B;
+  --accent-red: #EF4444;
+  --accent-green: #10B981;
+  --accent-purple: #8B5CF6;
 }
 
-/* ══ Dashboard Scanline Texture ══════════════════════════════════════ */
-.scanline-texture {
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 3px,
-      rgba(255, 255, 255, 0.015) 3px,
-      rgba(255, 255, 255, 0.015) 4px
-    );
+/* ══ Frosted Glass Utility Classes ═════════════════════════════════════ */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
 }
 
-.grid-bg-subtle {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-
-/* ══ Vision Mode Shaders & Filters ═══════════════════════════════════ */
-.vision-optical {
-  filter: none;
-}
-
-.vision-cv {
-  filter: none;
-}
-
-.vision-thermal {
-  filter: invert(0.85) hue-rotate(185deg) saturate(320%) contrast(150%) brightness(1.1);
-}
-
-.vision-night {
-  filter: sepia(100%) hue-rotate(75deg) saturate(450%) brightness(1.2) contrast(140%);
-}
-
-.vision-wireframe {
-  filter: none;
-}
-
-/* ══ Landing Page Glass Effects ══════════════════════════════════════ */
 .glass-navbar {
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0px 1px 1px 0px rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 36px -8px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(15, 23, 42, 0.02);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 25px -3px rgba(15, 23, 42, 0.04), 0 4px 6px -4px rgba(15, 23, 42, 0.02);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px -4px rgba(99, 102, 241, 0.08), 0 6px 12px -4px rgba(15, 23, 42, 0.04);
+  border-color: rgba(99, 102, 241, 0.25);
 }
 
 .glass-button {
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  color: #0F172A;
+  transition: all 0.2s ease;
 }
 
-.cta-primary {
-  background: linear-gradient(135deg, #0084ff, #0055d4);
-  box-shadow: 0 4px 20px rgba(0, 132, 255, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
-  transition: all 200ms ease;
+.glass-button:hover {
+  background: #FFFFFF;
+  border-color: rgba(203, 213, 225, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.cta-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 30px rgba(0, 132, 255, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+/* ══ Primary Gradient Button (Matching User Reference) ═════════════════ */
+.cta-purple-gradient {
+  background: linear-gradient(135deg, #6366F1 0%, #7C3AED 50%, #8B5CF6 100%);
+  color: #FFFFFF;
+  box-shadow: 0 10px 25px -4px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ══ Radar Sweep Animation ═══════════════════════════════════════════ */
-@keyframes radar-sweep {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.cta-purple-gradient:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 14px 32px -4px rgba(124, 58, 237, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.6);
 }
 
-.animate-radar-sweep {
-  animation: radar-sweep 4s linear infinite;
-  transform-origin: center center;
+/* ══ Ambient Mesh Background ═══════════════════════════════════════════ */
+.ambient-light-bg {
+  background-color: #F8FAFC;
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, rgba(6, 182, 212, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(139, 92, 246, 0.06) 0px, transparent 60%);
 }
 
-/* ══ Live Pulse & Glowing Beacons ════════════════════════════════════ */
+/* ══ Micro Pulse Animation ════════════════════════════════════════════ */
 @keyframes live-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.92); }
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
 }
 
 .animate-live-pulse {
-  animation: live-pulse 2s ease-in-out infinite;
+  animation: live-pulse 2s infinite ease-in-out;
 }
 
-@keyframes beacon-ping {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(3.2); opacity: 0; }
+/* ══ Custom Scrollbars ═════════════════════════════════════════════════ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-
-.animate-beacon-ping {
-  animation: beacon-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
-
-@keyframes glow-ring {
-  0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.6); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+::-webkit-scrollbar-thumb {
+  background: rgba(203, 213, 225, 0.8);
+  border-radius: 999px;
 }
-
-.animate-glow-ring {
-  animation: glow-ring 1.8s ease-out infinite;
-}
-
-/* ══ Tactical Crosshairs & Corner Accents ════════════════════════════ */
-.tactical-border {
-  position: relative;
-}
-
-.tactical-border::before,
-.tactical-border::after {
-  content: "";
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-color: var(--accent-primary);
-  pointer-events: none;
-}
-
-.tactical-border::before {
-  top: -1px;
-  left: -1px;
-  border-top: 2px solid;
-  border-left: 2px solid;
-}
-
-.tactical-border::after {
-  bottom: -1px;
-  right: -1px;
-  border-bottom: 2px solid;
-  border-right: 2px solid;
-}
-
-/* ══ Scrollbar (dashboard) ═══════════════════════════════════════════ */
-.dashboard-theme ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-.dashboard-theme ::-webkit-scrollbar-track {
-  background: #07090e;
-}
-
-.dashboard-theme ::-webkit-scrollbar-thumb {
-  background: #1e2638;
-  border-radius: 4px;
-}
-
-.dashboard-theme ::-webkit-scrollbar-thumb:hover {
-  background: #2a374f;
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 1);
 }
