@@ -77,26 +77,37 @@ const EVENT_CONFIGS: {
   label: string;
   defaultClass: AlertVehicleDetails["objectClass"];
 }[] = [
-  { type: "accident_collision", severity: "critical", label: "High-Impact Collision (100% Confirmed)", defaultClass: "Auto Rickshaw" },
-  { type: "accident_collision", severity: "critical", label: "Multi-Vehicle Crash Incident (100% Confirmed)", defaultClass: "Sedan" },
-  { type: "illegal_parking", severity: "high", label: "Illegal Parking / Obstruction (Red Zone)", defaultClass: "Auto Rickshaw" },
-  { type: "illegal_parking", severity: "medium", label: "Illegal Parking (Bus Lane)", defaultClass: "SUV" },
-  { type: "wrong_way", severity: "critical", label: "Wrong-Way Movement Detected", defaultClass: "Auto Rickshaw" },
-  { type: "wrong_way", severity: "critical", label: "Contraflow Driving Detected", defaultClass: "Motorcycle" },
-  { type: "triple_riding", severity: "high", label: "Triple Riding on Two-Wheeler (3 Pax)", defaultClass: "Motorcycle" },
+  // 1. Helmet Violation
   { type: "helmet_violation", severity: "medium", label: "Helmet Violation (No Headgear)", defaultClass: "Motorcycle" },
+  // 2. Triple Riding
+  { type: "triple_riding", severity: "high", label: "Triple Riding on Two-Wheeler (3 Pax)", defaultClass: "Motorcycle" },
+  // 3. Wrong-Way Driving
+  { type: "wrong_way", severity: "critical", label: "Wrong-Way Driving (Contraflow)", defaultClass: "Auto Rickshaw" },
+  { type: "wrong_way", severity: "critical", label: "Wrong-Way Vehicle Entry", defaultClass: "Motorcycle" },
+  // 4. Vehicle Stopped / Possible Accident
+  { type: "vehicle_stopped", severity: "high", label: "Vehicle Stopped / Possible Accident (Hazard)", defaultClass: "Auto Rickshaw" },
+  { type: "vehicle_stopped", severity: "high", label: "Vehicle Stopped in Active Lane (> 30s)", defaultClass: "Sedan" },
+  // 5. Accident / Collision
+  { type: "accident_collision", severity: "critical", label: "High-Impact Collision Detected (100% Accuracy)", defaultClass: "Auto Rickshaw" },
+  { type: "accident_collision", severity: "critical", label: "Multi-Vehicle Crash Incident (100% Accuracy)", defaultClass: "Sedan" },
+  // 6. Accident / Stopped Vehicle (Standalone)
+  { type: "stopped_vehicle_accident", severity: "critical", label: "Accident / Stopped Vehicle (Lane Blockage)", defaultClass: "Truck" },
+  { type: "stopped_vehicle_accident", severity: "critical", label: "Accident / Immobilized Auto-Rickshaw", defaultClass: "Auto Rickshaw" },
+
+  // Supplementary Urban Events
+  { type: "illegal_parking", severity: "high", label: "Illegal Parking / Red Zone Obstruction", defaultClass: "Auto Rickshaw" },
   { type: "speed_violation", severity: "high", label: "Speed Limit Exceeded (78 km/h)", defaultClass: "SUV" },
-  { type: "loitering", severity: "medium", label: "Prolonged Loitering (> 180s)", defaultClass: "Pedestrian" },
   { type: "crowd_density", severity: "critical", label: "Surge Crowd Density (> 85 pax/100m²)", defaultClass: "Crowd Group" },
-  { type: "restricted_perimeter", severity: "high", label: "Perimeter Geo-fence Breach", defaultClass: "Truck" },
 ];
 
 export const EVENT_LABELS: Record<AlertEventType, string> = {
-  accident_collision: "🚨 High-Impact Crash (100% Accuracy)",
-  illegal_parking: "🛑 Illegal Parking / Red Zone",
-  wrong_way: "⛔ Wrong-Way / Contraflow",
-  triple_riding: "🏍️ Triple Riding Detected",
   helmet_violation: "⛑️ Helmet Violation",
+  triple_riding: "🏍️ Triple Riding (3 Pax)",
+  wrong_way: "⛔ Wrong-Way Driving",
+  vehicle_stopped: "🛑 Vehicle Stopped / Hazard",
+  accident_collision: "💥 Accident / Collision (100%)",
+  stopped_vehicle_accident: "🚨 Accident / Stopped Vehicle",
+  illegal_parking: "🛑 Illegal Parking / Red Zone",
   speed_violation: "⚡ Speed Limit Exceeded",
   crowd_density: "👥 Surge Crowd Density",
   loitering: "⏳ Loitering Detected",

@@ -1068,15 +1068,16 @@ function LiveAlertFeed() {
         </div>
 
         {/* Quick Event Category Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 text-[9px] font-mono-data">
+        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 text-[9px] font-mono-data scrollbar-none">
           {[
-            { label: "All Types", query: "" },
-            { label: "💥 Crashes (100%)", query: "Crash" },
-            { label: "🛺 Auto-Rickshaw", query: "Auto" },
+            { label: "All Events", query: "" },
+            { label: "⛑️ Helmet Violation", query: "Helmet" },
+            { label: "🏍️ Triple Riding", query: "Triple" },
             { label: "⛔ Wrong-Way", query: "Wrong" },
-            { label: "🛑 Parking", query: "Parking" },
-            { label: "🏍️ Two-Wheeler", query: "Riding" },
-            { label: "⚡ Speeding", query: "Speed" },
+            { label: "🛑 Stopped / Possible Crash", query: "Stopped" },
+            { label: "💥 Collision (100%)", query: "Collision" },
+            { label: "🚨 Accident / Stopped Vehicle", query: "Accident" },
+            { label: "🛺 Auto-Rickshaw", query: "Auto" },
           ].map((cat) => (
             <button
               key={cat.label}

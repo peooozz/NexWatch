@@ -19,12 +19,14 @@ export type Camera = {
 };
 
 export type AlertEventType =
+  | "helmet_violation"
+  | "triple_riding"
+  | "wrong_way"
+  | "vehicle_stopped"
   | "accident_collision"
+  | "stopped_vehicle_accident"
   | "illegal_parking"
   | "loitering"
-  | "wrong_way"
-  | "triple_riding"
-  | "helmet_violation"
   | "crowd_density"
   | "speed_violation"
   | "restricted_perimeter";
