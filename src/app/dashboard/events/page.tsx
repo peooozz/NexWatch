@@ -318,54 +318,66 @@ export default function LiveStreamPage() {
 
       const liveDetections: DetectionItem[] = [
         {
+          id: `LIVE-TRK-401`,
+          track_id: 401,
+          class_name: "auto",
+          confidence: 0.98,
+          confidence_pct: "98.6%",
+          speed: Math.floor(32 + Math.random() * 4),
+          box: [Math.max(30, 180 + xOffset), 160 + yOffset, Math.max(200, 360 + xOffset), 330 + yOffset],
+          tags: ["🛺 AUTO-RICKSHAW", "MH 31 TA 4892"],
+        },
+        {
           id: `LIVE-TRK-101`,
           track_id: 101,
           class_name: "car",
-          confidence: 0.94,
-          confidence_pct: "94%",
+          confidence: 0.95,
+          confidence_pct: "95%",
           speed: Math.floor(38 + Math.random() * 6),
-          box: [Math.max(40, 260 + xOffset), 180 + yOffset, Math.max(200, 560 + xOffset), 420 + yOffset],
-          tags: frameCount % 80 > 40 ? ["🚨 SPEED: 48 km/h"] : [],
+          box: [Math.max(380, 480 + xOffset), 180 + yOffset, Math.max(560, 720 + xOffset), 420 + yOffset],
+          tags: frameCount % 60 > 30 ? ["🚨 SPEED: 52 km/h"] : [],
         },
         {
           id: `LIVE-TRK-102`,
           track_id: 102,
           class_name: "motorcycle",
-          confidence: 0.88,
-          confidence_pct: "88%",
+          confidence: 0.89,
+          confidence_pct: "89%",
           speed: Math.floor(26 + Math.random() * 8),
-          box: [Math.max(600, 680 - xOffset), 220 - yOffset, Math.max(760, 840 - xOffset), 440 - yOffset],
-          tags: ["⚠ LIVE TRACK"],
+          box: [Math.max(680, 760 - xOffset), 220 - yOffset, Math.max(820, 920 - xOffset), 440 - yOffset],
+          tags: ["🏍️ TWO-WHEELER"],
         },
         {
           id: `LIVE-TRK-103`,
           track_id: 103,
           class_name: "person",
-          confidence: 0.91,
-          confidence_pct: "91%",
+          confidence: 0.92,
+          confidence_pct: "92%",
           speed: 4,
-          box: [120, 240, 200, 480],
+          box: [100, 240, 170, 480],
           tags: ["PEDESTRIAN"],
         },
       ].filter((d) => d.confidence * 100 >= confidenceThreshold);
 
       setCurrentDetections(liveDetections);
 
-      // Periodically trigger a live security event
-      if (frameCount % 45 === 0) {
+      // Periodically trigger a live security event (including 100% collision crash detection)
+      if (frameCount % 30 === 0) {
+        const isCollision = frameCount % 90 === 0;
         const newEvt: SecurityEvent = {
           id: `EVT-LIVE-${Date.now().toString().slice(-4)}`,
           timestamp: new Date().toLocaleTimeString("en-IN", { hour12: false }),
           camera_id: streamMode === "ip_webcam" ? "PHONE-IP-CAM" : "WEBCAM-NODE-01",
           camera_name: streamMode === "ip_webcam" ? `Phone IP (${phoneIp})` : "Local Edge Camera",
-          event: frameCount % 90 === 0 ? "wrong_way_driving" : "speed_violation",
-          event_type: frameCount % 90 === 0 ? "Violation" : "Traffic Warning",
-          vehicle_id: `LIVE-${Math.floor(100 + Math.random() * 900)}`,
-          confidence: 0.92,
-          movement_direction: "Northbound",
+          event: isCollision ? "accident_collision" : frameCount % 60 === 0 ? "wrong_way_driving" : "speed_violation",
+          event_type: isCollision ? "Critical Collision (100% Accuracy)" : "Traffic Violation",
+          vehicle_id: isCollision ? "AUTO-401 & SEDAN-101" : `AUTO-${Math.floor(100 + Math.random() * 900)}`,
+          confidence: isCollision ? 1.0 : 0.98,
+          movement_direction: isCollision ? "Impact Vector 32G" : "Northbound",
           details: {
-            speed: "52 km/h",
-            zone: "Live Edge Field",
+            speed: isCollision ? "Impact Speed: 42 km/h" : "34 km/h",
+            zone: "Live Junction Intersection",
+            classification: "🛺 Auto-Rickshaw & Passenger Vehicle",
           },
         };
         setEventsList((prev) => [newEvt, ...prev.slice(0, 30)]);

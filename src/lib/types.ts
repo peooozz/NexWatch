@@ -19,6 +19,7 @@ export type Camera = {
 };
 
 export type AlertEventType =
+  | "accident_collision"
   | "illegal_parking"
   | "loitering"
   | "wrong_way"
@@ -42,7 +43,7 @@ export type AlertVehicleDetails = {
   plateConfidence?: number;
   speedKmph?: number;
   durationInZoneSec?: number;
-  objectClass: "Sedan" | "SUV" | "Truck" | "Motorcycle" | "Pedestrian" | "Crowd Group";
+  objectClass: "Sedan" | "SUV" | "Truck" | "Motorcycle" | "Auto Rickshaw" | "Pedestrian" | "Crowd Group";
 };
 
 export type Alert = {

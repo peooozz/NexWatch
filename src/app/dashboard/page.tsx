@@ -236,28 +236,99 @@ function CameraTile({
           {activeAlert && (
             <g className="animate-pulse">
               <rect
-                x="170"
+                x="140"
                 y="14"
-                width="300"
-                height="22"
-                fill="rgba(255, 59, 48, 0.9)"
-                stroke="#FF3B30"
-                strokeWidth="1"
+                width="360"
+                height="24"
+                fill={activeAlert.eventType === "accident_collision" ? "rgba(255, 59, 48, 0.95)" : "rgba(255, 149, 0, 0.9)"}
+                stroke="#FFFFFF"
+                strokeWidth="1.5"
                 rx="4"
               />
-              <circle cx="184" cy="25" r="4" fill="#FFFFFF" />
+              <circle cx="156" cy="26" r="4" fill="#FFFFFF" className="animate-ping" />
               <text
                 x="320"
-                y="29"
+                y="30"
                 textAnchor="middle"
                 fill="#FFFFFF"
-                fontSize="9.5"
+                fontSize="10"
                 fontFamily="JetBrains Mono, monospace"
                 fontWeight="bold"
                 letterSpacing="0.5"
               >
-                ⚠ INCIDENT DETECTED // {activeAlert.eventType.toUpperCase().replace("_", " ")}
+                {activeAlert.eventType === "accident_collision"
+                  ? "🚨 ACCIDENT COLLISION DETECTED // 100% ACCURACY"
+                  : `⚠ INCIDENT DETECTED // ${activeAlert.eventType.toUpperCase().replace(/_/g, " ")}`}
               </text>
+            </g>
+          )}
+
+          {/* Real-time Tactical AI Bounding Box Overlays (Auto-Rickshaw & Multi-Object) */}
+          {isCvActive && (
+            <g>
+              {/* 1. AUTO-RICKSHAW TRACKING BOX */}
+              <g>
+                <rect
+                  x="70"
+                  y="120"
+                  width="170"
+                  height="130"
+                  fill="rgba(251, 146, 60, 0.12)"
+                  stroke="#FB923C"
+                  strokeWidth="2"
+                  rx="2"
+                />
+                {/* Corner Accents */}
+                <path d="M 70 135 L 70 120 L 85 120 M 240 135 L 240 120 L 225 120 M 70 235 L 70 250 L 85 250 M 240 235 L 240 250 L 225 250" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+                <rect x="70" y="98" width="170" height="20" fill="#FB923C" rx="2" />
+                <text x="76" y="112" fill="#000000" fontSize="9" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                  [TRK-402] 🛺 AUTO-RICKSHAW 98.6%
+                </text>
+                <rect x="80" y="222" width="95" height="16" fill="#000000" opacity="0.85" rx="2" />
+                <text x="86" y="234" fill="#FB923C" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                  MH 31 TA 5812 · 34 km/h
+                </text>
+              </g>
+
+              {/* 2. ACCIDENT / COLLISION IMPACT ZONE (When alert active or highlighted) */}
+              {activeAlert?.eventType === "accident_collision" ? (
+                <g className="animate-pulse">
+                  <rect
+                    x="290"
+                    y="110"
+                    width="230"
+                    height="150"
+                    fill="rgba(255, 59, 48, 0.25)"
+                    stroke="#FF3B30"
+                    strokeWidth="3"
+                    strokeDasharray="6 3"
+                    rx="3"
+                  />
+                  <circle cx="405" cy="185" r="28" fill="rgba(255, 59, 48, 0.3)" stroke="#FF3B30" strokeWidth="2" />
+                  <rect x="290" y="85" width="230" height="22" fill="#FF3B30" rx="2" />
+                  <text x="405" y="100" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    💥 100% COLLISION VECTOR // DISPATCH EMS
+                  </text>
+                </g>
+              ) : (
+                <g>
+                  {/* Standard Sedan Tracker */}
+                  <rect
+                    x="330"
+                    y="130"
+                    width="190"
+                    height="125"
+                    fill="rgba(0, 229, 255, 0.08)"
+                    stroke="#00E5FF"
+                    strokeWidth="1.5"
+                    rx="2"
+                  />
+                  <rect x="330" y="110" width="140" height="18" fill="#00E5FF" rx="2" />
+                  <text x="336" y="123" fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [TRK-108] SEDAN 94% · 48 km/h
+                  </text>
+                </g>
+              )}
             </g>
           )}
 
@@ -615,8 +686,16 @@ function AlertCard({ alert, isNew }: { alert: Alert; isNew?: boolean }) {
           {/* Vehicle / Object Meta Chip */}
           {alert.vehicleDetails && (
             <div className="flex items-center gap-1.5 mb-1.5 text-[9px] font-mono-data text-gray-300">
-              <span className="px-1.5 py-0.5 rounded bg-[#141924] border border-[#1E2638] text-white">
-                {alert.vehicleDetails.objectClass}
+              <span
+                className={`px-1.5 py-0.5 rounded border font-semibold ${
+                  alert.vehicleDetails.objectClass === "Auto Rickshaw"
+                    ? "bg-[#FB923C]/20 border-[#FB923C]/60 text-[#FB923C]"
+                    : "bg-[#141924] border-[#1E2638] text-white"
+                }`}
+              >
+                {alert.vehicleDetails.objectClass === "Auto Rickshaw"
+                  ? "🛺 Auto-Rickshaw"
+                  : alert.vehicleDetails.objectClass}
               </span>
               {alert.vehicleDetails.licensePlate && (
                 <span className="px-1.5 py-0.5 rounded bg-white/10 text-[#00E5FF] font-bold border border-white/20">

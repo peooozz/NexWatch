@@ -77,10 +77,12 @@ const EVENT_CONFIGS: {
   label: string;
   defaultClass: AlertVehicleDetails["objectClass"];
 }[] = [
-  { type: "illegal_parking", severity: "high", label: "Illegal Parking (Red Zone)", defaultClass: "Sedan" },
+  { type: "accident_collision", severity: "critical", label: "High-Impact Collision Detected (100% Conf)", defaultClass: "Auto Rickshaw" },
+  { type: "accident_collision", severity: "critical", label: "Multi-Vehicle Crash Incident (100% Conf)", defaultClass: "Sedan" },
+  { type: "illegal_parking", severity: "high", label: "Illegal Parking (Red Zone)", defaultClass: "Auto Rickshaw" },
   { type: "illegal_parking", severity: "medium", label: "Illegal Parking (Bus Lane)", defaultClass: "SUV" },
+  { type: "wrong_way", severity: "critical", label: "Wrong-Way Auto Entry", defaultClass: "Auto Rickshaw" },
   { type: "wrong_way", severity: "critical", label: "Wrong-Way Vehicle Entry", defaultClass: "Motorcycle" },
-  { type: "wrong_way", severity: "critical", label: "Contraflow Driving Detected", defaultClass: "Sedan" },
   { type: "speed_violation", severity: "high", label: "Speed Limit Violation (82 km/h)", defaultClass: "SUV" },
   { type: "loitering", severity: "medium", label: "Prolonged Loitering (> 180s)", defaultClass: "Pedestrian" },
   { type: "crowd_density", severity: "critical", label: "Surge Crowd Density (> 85 pax/100m²)", defaultClass: "Crowd Group" },
@@ -88,6 +90,7 @@ const EVENT_CONFIGS: {
 ];
 
 export const EVENT_LABELS: Record<AlertEventType, string> = {
+  accident_collision: "🚨 High-Impact Crash (100% Accuracy)",
   illegal_parking: "Illegal Parking",
   loitering: "Loitering Detected",
   wrong_way: "Wrong-Way Movement",
@@ -101,13 +104,29 @@ export function getEventLabel(type: AlertEventType): string {
 }
 
 const VEHICLE_MAKES = ["Tata Harrier", "Mahindra XUV700", "Hyundai Creta", "Maruti Brezza", "Toyota Innova", "Honda City", "Royal Enfield 350", "Bajaj Pulsar"];
+const AUTO_MAKES = ["Bajaj RE Compact Auto", "Piaggio Ape City Plus", "Mahindra Treo Electric Auto", "Atul Shakti Auto", "Bajaj Maxima Z"];
 const VEHICLE_COLORS = ["Pearl White", "Obsidian Black", "Metallic Silver", "Deep Crimson", "Navy Blue", "Charcoal Grey"];
+const AUTO_COLORS = ["Yellow & Black (Classic)", "Green & Yellow (CNG Clean)", "Electric Cyan (EV Fleet)", "Yellow & Green"];
 
 function generateVehicleMetadata(objectClass: AlertVehicleDetails["objectClass"]): AlertVehicleDetails {
   if (objectClass === "Pedestrian" || objectClass === "Crowd Group") {
     return {
       objectClass,
       durationInZoneSec: randomInt(45, 360),
+    };
+  }
+
+  if (objectClass === "Auto Rickshaw") {
+    const autoSeries = randomItem(["TA", "TB", "TC", "TD", "TE", "TR"]);
+    const autoNum = randomInt(1000, 9999);
+    return {
+      objectClass: "Auto Rickshaw",
+      make: randomItem(AUTO_MAKES),
+      color: randomItem(AUTO_COLORS),
+      licensePlate: `MH 31 ${autoSeries} ${autoNum}`,
+      plateConfidence: 0.98,
+      speedKmph: randomInt(24, 48),
+      durationInZoneSec: randomInt(20, 300),
     };
   }
 
