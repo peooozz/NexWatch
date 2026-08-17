@@ -1,0 +1,43 @@
+services:
+  # ── 1. PostgreSQL Database on Render ──────────────────────────────
+  # (Render provides a free/starter Managed PostgreSQL database)
+  
+  # ── 2. FastAPI Backend Web Service ────────────────────────────────
+  - type: web
+    name: cityeye-backend
+    runtime: docker
+    dockerfilePath: Dockerfile.backend
+    plan: free
+    region: oregon
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cityeye-db
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: https://cityeye-frontend.onrender.com,http://localhost:3000
+      - key: WS_BROADCAST_INTERVAL_SEC
+        value: 10
+
+  # ── 3. Next.js Frontend Web Service ───────────────────────────────
+  - type: web
+    name: cityeye-frontend
+    runtime: docker
+    dockerfilePath: Dockerfile.frontend
+    plan: free
+    region: oregon
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_WS_URL
+        value: wss://cityeye-backend.onrender.com/ws/alerts
+
+databases:
+  - name: cityeye-db
+    plan: free
+    region: oregon
+    databaseName: cityeye
+    user: cityeye_user

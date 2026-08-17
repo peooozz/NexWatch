@@ -43,7 +43,7 @@ export interface DetectionItem {
   confidence: number;
   confidence_pct?: string;
   speed?: number;
-  box?: [number, number, number, number];
+  box?: [number, number, number, number] | number[];
   tags?: string[];
 }
 

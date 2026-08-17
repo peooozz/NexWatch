@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  # ── PostgreSQL Database ───────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: cityeye-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: cityeye
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ───────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: cityeye-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgrespassword@postgres:5432/cityeye
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - WS_BROADCAST_INTERVAL_SEC=10
+    ports:
+      - "8000:8000"
+
+  # ── Next.js Frontend ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_WS_URL: ws://localhost:8000/ws/alerts
+    container_name: cityeye-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws/alerts
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
