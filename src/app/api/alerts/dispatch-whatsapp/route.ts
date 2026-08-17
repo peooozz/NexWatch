@@ -73,16 +73,16 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Call Twilio REST API directly
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+    const basicAuth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+
+    // 1. Try sending direct Body message first
     const params = new URLSearchParams();
     params.append("From", fromNumber);
     params.append("To", formattedTo);
     params.append("Body", messageText);
 
-    const basicAuth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
-
-    const twilioRes = await fetch(twilioUrl, {
+    let twilioRes = await fetch(twilioUrl, {
       method: "POST",
       headers: {
         Authorization: `Basic ${basicAuth}`,
@@ -91,10 +91,42 @@ export async function POST(req: NextRequest) {
       body: params.toString(),
     });
 
-    const twilioData = await twilioRes.json();
+    let twilioData = await twilioRes.json();
+
+    // 2. If Twilio requires ContentSid (error code 21654), retry with pre-approved Content Template
+    if (!twilioRes.ok && (twilioData.code === 21654 || twilioData.message?.includes("ContentSid"))) {
+      console.log("Twilio 21654 detected: Retrying with Content Template fallback...");
+      
+      const contentSid =
+        process.env.TWILIO_CONTENT_SID ||
+        "HXb5b62575e6e4ff6129ad7c8efe1f983e"; // Default Twilio Appointment/Alert template
+
+      const templateParams = new URLSearchParams();
+      templateParams.append("From", fromNumber);
+      templateParams.append("To", formattedTo);
+      templateParams.append("ContentSid", contentSid);
+      templateParams.append(
+        "ContentVariables",
+        JSON.stringify({
+          "1": `${camName} (${eventType})`,
+          "2": `${timeStr} IST - License: ${plate}`,
+        })
+      );
+
+      twilioRes = await fetch(twilioUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: templateParams.toString(),
+      });
+
+      twilioData = await twilioRes.json();
+    }
 
     if (!twilioRes.ok) {
-      console.error("Twilio API Error:", twilioData);
+      console.error("Twilio API Error Final:", twilioData);
       return NextResponse.json(
         {
           success: false,

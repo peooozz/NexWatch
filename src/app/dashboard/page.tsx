@@ -1188,53 +1188,65 @@ export default function DashboardPage() {
   const alerts = useDashboardStore((s) => s.alerts);
 
   const autoDispatchedIds = useRef<Set<string>>(new Set());
+  const lastDispatchTimeRef = useRef<number>(0);
   const [autoToast, setAutoToast] = useState<{
     alert: Alert;
     status: string;
     sid?: string;
   } | null>(null);
 
+  // Automatic WhatsApp SOS Engine (Throttled to protect Twilio rate limits)
   useEffect(() => {
-    alerts.forEach(async (alert) => {
-      const isCritical =
-        alert.severity === "critical" ||
-        alert.eventType === "accident_collision" ||
-        alert.eventType === "stopped_vehicle_accident" ||
-        alert.eventType === "crowd_density" ||
-        alert.eventType === "wrong_way";
+    const criticals = alerts.filter(
+      (a) =>
+        (a.severity === "critical" ||
+          a.eventType === "accident_collision" ||
+          a.eventType === "stopped_vehicle_accident") &&
+        !autoDispatchedIds.current.has(a.id)
+    );
 
-      if (isCritical && !autoDispatchedIds.current.has(alert.id)) {
-        autoDispatchedIds.current.add(alert.id);
-        try {
-          const res = await fetch("/api/alerts/dispatch-whatsapp", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              camera_id: alert.cameraId,
-              camera_name: alert.cameraName,
-              event_type: alert.eventType,
-              severity: alert.severity,
-              confidence: alert.confidence,
-              track_id: alert.trackId,
-              vehicle_details: alert.vehicleDetails,
-              detected_at: alert.detectedAt,
-              recipient_phone: "+919322166721",
-            }),
+    if (criticals.length === 0) return;
+
+    const now = Date.now();
+    if (now - lastDispatchTimeRef.current < 20000) {
+      return; // Cooldown: 20 seconds between WhatsApp dispatches
+    }
+
+    const targetAlert = criticals[0];
+    autoDispatchedIds.current.add(targetAlert.id);
+    lastDispatchTimeRef.current = now;
+
+    fetch("/api/alerts/dispatch-whatsapp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        camera_id: targetAlert.cameraId,
+        camera_name: targetAlert.cameraName,
+        event_type: targetAlert.eventType,
+        severity: targetAlert.severity,
+        confidence: targetAlert.confidence,
+        track_id: targetAlert.trackId,
+        vehicle_details: targetAlert.vehicleDetails,
+        detected_at: targetAlert.detectedAt,
+        recipient_phone: "+919322166721",
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setAutoToast({
+            alert: targetAlert,
+            status: "delivered",
+            sid: data.sid,
           });
-          const data = await res.json();
-          if (data.success) {
-            setAutoToast({
-              alert,
-              status: "delivered",
-              sid: data.sid,
-            });
-            setTimeout(() => setAutoToast(null), 8000);
-          }
-        } catch (err) {
-          console.error("Twilio Auto-Dispatch error:", err);
+          setTimeout(() => setAutoToast(null), 8000);
+        } else {
+          console.warn("Twilio dispatch response:", data);
         }
-      }
-    });
+      })
+      .catch((err) => {
+        console.error("Twilio Auto-Dispatch error:", err);
+      });
   }, [alerts]);
 
   const focusedCamera = cameras.find((c) => c.id === focusedCameraId) || cameras[0];
