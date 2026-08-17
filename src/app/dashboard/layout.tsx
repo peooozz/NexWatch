@@ -68,6 +68,7 @@ function DashboardNav() {
   const navLinks = [
     { href: "/dashboard", label: "Live Surveillance" },
     { href: "/dashboard/analytics", label: "Analytics & Intel" },
+    { href: "/dashboard/events", label: "All Event Detection" },
     ...(role === "Admin" || role === "Chief Dispatcher"
       ? [{ href: "/dashboard/admin", label: "Admin & Node Mgmt" }]
       : []),
