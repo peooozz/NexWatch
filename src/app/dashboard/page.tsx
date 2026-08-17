@@ -263,69 +263,145 @@ function CameraTile({
             </g>
           )}
 
-          {/* Real-time Tactical AI Bounding Box Overlays (Auto-Rickshaw & Multi-Object) */}
+          {/* Real-time Tactical AI Bounding Box Overlays (Camera-Specific Auto-Rickshaw & Traffic HUD) */}
           {isCvActive && (
             <g>
-              {/* 1. AUTO-RICKSHAW TRACKING BOX */}
-              <g>
-                <rect
-                  x="70"
-                  y="120"
-                  width="170"
-                  height="130"
-                  fill="rgba(251, 146, 60, 0.12)"
-                  stroke="#FB923C"
-                  strokeWidth="2"
-                  rx="2"
-                />
-                {/* Corner Accents */}
-                <path d="M 70 135 L 70 120 L 85 120 M 240 135 L 240 120 L 225 120 M 70 235 L 70 250 L 85 250 M 240 235 L 240 250 L 225 250" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
-                <rect x="70" y="98" width="170" height="20" fill="#FB923C" rx="2" />
-                <text x="76" y="112" fill="#000000" fontSize="9" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                  [TRK-402] 🛺 AUTO-RICKSHAW 98.6%
-                </text>
-                <rect x="80" y="222" width="95" height="16" fill="#000000" opacity="0.85" rx="2" />
-                <text x="86" y="234" fill="#FB923C" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                  MH 31 TA 5812 · 34 km/h
-                </text>
-              </g>
+              {/* CAM-001 (Wardha Road 4-Way Junction) */}
+              {camera.id === "CAM-001" && (
+                <g>
+                  {/* Auto-Rickshaw */}
+                  <rect x="110" y="130" width="160" height="120" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                  <path d="M 110 145 L 110 130 L 125 130 M 270 145 L 270 130 L 255 130 M 110 235 L 110 250 L 125 250 M 270 235 L 270 250 L 255 250" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+                  <rect x="110" y="110" width="160" height="18" fill="#FB923C" rx="2" />
+                  <text x="116" y="123" fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [AUTO-101] 🛺 AUTO-RICKSHAW 98%
+                  </text>
+                  <rect x="115" y="228" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
+                  <text x="120" y="239" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    MH 31 TA 1204 · 32 km/h
+                  </text>
 
-              {/* 2. ACCIDENT / COLLISION IMPACT ZONE (When alert active or highlighted) */}
-              {activeAlert?.eventType === "accident_collision" ? (
+                  {/* Sedan */}
+                  <rect x="330" y="140" width="180" height="120" fill="rgba(0, 229, 255, 0.08)" stroke="#00E5FF" strokeWidth="1.5" rx="2" />
+                  <rect x="330" y="122" width="140" height="16" fill="#00E5FF" rx="2" />
+                  <text x="336" y="134" fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [SEDAN-102] CAR 94% · 48 km/h
+                  </text>
+                </g>
+              )}
+
+              {/* CAM-002 (Sitabuldi Metro Interchange) */}
+              {camera.id === "CAM-002" && (
+                <g>
+                  {/* Auto-Rickshaw */}
+                  <rect x="80" y="140" width="165" height="125" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                  <path d="M 80 155 L 80 140 L 95 140 M 245 155 L 245 140 L 230 140 M 80 250 L 80 265 L 95 265 M 245 250 L 245 265 L 230 265" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+                  <rect x="80" y="120" width="165" height="18" fill="#FB923C" rx="2" />
+                  <text x="86" y="133" fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [AUTO-204] 🛺 AUTO-RICKSHAW 99%
+                  </text>
+                  <rect x="85" y="242" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
+                  <text x="90" y="253" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    MH 31 TB 7820 · 28 km/h
+                  </text>
+
+                  {/* Two-Wheeler */}
+                  <rect x="290" y="160" width="110" height="100" fill="rgba(16, 185, 129, 0.12)" stroke="#10B981" strokeWidth="1.5" rx="2" />
+                  <rect x="290" y="144" width="110" height="15" fill="#10B981" rx="2" />
+                  <text x="294" y="155" fill="#000000" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [MTR-205] BIKE 91%
+                  </text>
+                </g>
+              )}
+
+              {/* CAM-003 (Dharampeth Traffic Circle - Bombay Traffic Footage) */}
+              {camera.id === "CAM-003" && (
+                <g>
+                  {/* Auto-Rickshaw 1 (Left Corridor) */}
+                  <rect x="60" y="145" width="160" height="120" fill="rgba(251, 146, 60, 0.14)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                  <path d="M 60 160 L 60 145 L 75 145 M 220 160 L 220 145 L 205 145 M 60 250 L 60 265 L 75 265 M 220 250 L 220 265 L 205 265" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+                  <rect x="60" y="125" width="160" height="18" fill="#FB923C" rx="2" />
+                  <text x="66" y="138" fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [AUTO-301] 🛺 AUTO-RICKSHAW 99.1%
+                  </text>
+                  <rect x="65" y="242" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
+                  <text x="70" y="253" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    MH 31 TC 3341 · 36 km/h
+                  </text>
+
+                  {/* Auto-Rickshaw 2 (Center Lane) */}
+                  <rect x="250" y="135" width="155" height="115" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                  <rect x="250" y="117" width="155" height="17" fill="#FB923C" rx="2" />
+                  <text x="256" y="129" fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [AUTO-302] 🛺 AUTO-RICKSHAW 98.4%
+                  </text>
+                  <rect x="255" y="228" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
+                  <text x="260" y="239" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    MH 31 TR 8819 · 30 km/h
+                  </text>
+
+                  {/* Bus in right lane */}
+                  <rect x="435" y="115" width="165" height="135" fill="rgba(236, 72, 153, 0.1)" stroke="#EC4899" strokeWidth="1.5" rx="2" />
+                  <rect x="435" y="97" width="130" height="17" fill="#EC4899" rx="2" />
+                  <text x="440" y="109" fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [BUS-303] BEST BUS 96%
+                  </text>
+                </g>
+              )}
+
+              {/* CAM-004 (Ambazari Lake Promenade - Andheri Station Traffic Chaos Footage) */}
+              {camera.id === "CAM-004" && (
+                <g>
+                  {/* Auto-Rickshaw 1 (Front Queue) */}
+                  <rect x="75" y="130" width="170" height="130" fill="rgba(251, 146, 60, 0.14)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                  <path d="M 75 145 L 75 130 L 90 130 M 245 145 L 245 130 L 230 130 M 75 245 L 75 260 L 90 260 M 245 245 L 245 260 L 230 260" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+                  <rect x="75" y="110" width="170" height="18" fill="#FB923C" rx="2" />
+                  <text x="81" y="123" fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [AUTO-401] 🛺 AUTO-RICKSHAW 98.8%
+                  </text>
+                  <rect x="80" y="238" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
+                  <text x="85" y="249" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    MH 31 TD 4902 · 18 km/h
+                  </text>
+
+                  {/* Auto-Rickshaw 2 (Turning Right) */}
+                  <rect x="270" y="145" width="160" height="120" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
+                  <rect x="270" y="127" width="160" height="17" fill="#FB923C" rx="2" />
+                  <text x="276" y="139" fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [AUTO-402] 🛺 AUTO-RICKSHAW 97.9%
+                  </text>
+                  <rect x="275" y="242" width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
+                  <text x="280" y="253" fill="#FB923C" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    MH 31 TE 6211 · 24 km/h
+                  </text>
+
+                  {/* Pedestrian Group */}
+                  <rect x="475" y="155" width="80" height="110" fill="rgba(255, 255, 255, 0.1)" stroke="#FFFFFF" strokeWidth="1.5" rx="2" />
+                  <rect x="475" y="139" width="80" height="15" fill="#FFFFFF" rx="2" />
+                  <text x="479" y="150" fill="#000000" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                    [PED-403] 93%
+                  </text>
+                </g>
+              )}
+
+              {/* ACCIDENT / COLLISION IMPACT ZONE OVERLAY (Active on alert) */}
+              {activeAlert?.eventType === "accident_collision" && (
                 <g className="animate-pulse">
                   <rect
-                    x="290"
+                    x="240"
                     y="110"
-                    width="230"
-                    height="150"
-                    fill="rgba(255, 59, 48, 0.25)"
+                    width="260"
+                    height="145"
+                    fill="rgba(255, 59, 48, 0.28)"
                     stroke="#FF3B30"
                     strokeWidth="3"
                     strokeDasharray="6 3"
                     rx="3"
                   />
-                  <circle cx="405" cy="185" r="28" fill="rgba(255, 59, 48, 0.3)" stroke="#FF3B30" strokeWidth="2" />
-                  <rect x="290" y="85" width="230" height="22" fill="#FF3B30" rx="2" />
-                  <text x="405" y="100" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                  <circle cx="370" cy="180" r="30" fill="rgba(255, 59, 48, 0.35)" stroke="#FF3B30" strokeWidth="2" />
+                  <rect x="240" y="85" width="260" height="22" fill="#FF3B30" rx="2" />
+                  <text x="370" y="100" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
                     💥 100% COLLISION VECTOR // DISPATCH EMS
-                  </text>
-                </g>
-              ) : (
-                <g>
-                  {/* Standard Sedan Tracker */}
-                  <rect
-                    x="330"
-                    y="130"
-                    width="190"
-                    height="125"
-                    fill="rgba(0, 229, 255, 0.08)"
-                    stroke="#00E5FF"
-                    strokeWidth="1.5"
-                    rx="2"
-                  />
-                  <rect x="330" y="110" width="140" height="18" fill="#00E5FF" rx="2" />
-                  <text x="336" y="123" fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
-                    [TRK-108] SEDAN 94% · 48 km/h
                   </text>
                 </g>
               )}
