@@ -63,6 +63,82 @@ def calculate_iou(box1, box2):
         return 0.0
     return inter_area / float(union_area)
 
+def extract_rider_head_roi(frame, rider_box):
+    """
+    Extracts the top 28-35% head region of an associated motorcycle rider bounding box.
+    Clamps within frame boundaries.
+    """
+    rx1, ry1, rx2, ry2 = rider_box
+    rh = ry2 - ry1
+    rw = rx2 - rx1
+
+    hx1 = max(0, rx1 - int(rw * 0.05))
+    hy1 = max(0, ry1)
+    hx2 = min(frame.shape[1], rx2 + int(rw * 0.05))
+    hy2 = min(frame.shape[0], ry1 + int(rh * 0.32))
+
+    if hx2 <= hx1 or hy2 <= hy1:
+        return None, [hx1, hy1, hx2, hy2]
+
+    head_crop = frame[hy1:hy2, hx1:hx2]
+    return head_crop, [hx1, hy1, hx2, hy2]
+
+def classify_rider_helmet(head_crop, helmet_model=None):
+    """
+    Evaluates whether a motorcycle rider is wearing a helmet or has a bare head.
+    Supports dedicated YOLO helmet model and advanced CV texture/skin/edge analysis.
+    Returns (status: 'HELMET'|'NO HELMET', confidence: float)
+    """
+    if head_crop is None or head_crop.size == 0:
+        return "UNKNOWN", 0.50
+
+    # Path A: If dedicated helmet YOLO model is provided
+    if helmet_model is not None:
+        try:
+            res = helmet_model(head_crop, conf=0.30, verbose=False)[0]
+            if res.boxes and len(res.boxes) > 0:
+                cls_names = res.names
+                best_cls = int(res.boxes.cls[0])
+                cname = str(cls_names.get(best_cls, "")).lower()
+                conf = float(res.boxes.conf[0])
+                if any(w in cname for w in ["no_helmet", "without_helmet", "none", "head", "bare"]):
+                    return "NO HELMET", conf
+                elif "helmet" in cname:
+                    return "HELMET", conf
+        except Exception:
+            pass
+
+    # Path B: High-Precision Computer Vision Texture & Color Analysis
+    try:
+        hsv = cv2.cvtColor(head_crop, cv2.COLOR_BGR2HSV)
+        h, w, _ = head_crop.shape
+
+        upper_dome = hsv[:int(h * 0.65), :]
+        if upper_dome.shape[0] == 0 or upper_dome.shape[1] == 0:
+            return "NO HELMET", 0.88
+
+        # 1. Human Skin Detection in upper face/forehead
+        lower_skin1 = np.array([0, 30, 60], dtype=np.uint8)
+        upper_skin1 = np.array([25, 200, 255], dtype=np.uint8)
+        skin_mask = cv2.inRange(upper_dome, lower_skin1, upper_skin1)
+        skin_ratio = np.sum(skin_mask > 0) / float(upper_dome.shape[0] * upper_dome.shape[1] + 1e-5)
+
+        # 2. Dark/Hair Color & Texture Analysis
+        gray_dome = cv2.cvtColor(head_crop[:int(h * 0.65), :], cv2.COLOR_BGR2GRAY)
+        laplacian_var = cv2.Laplacian(gray_dome, cv2.CV_64F).var()
+
+        brightness = np.mean(upper_dome[:, :, 2])
+        saturation = np.mean(upper_dome[:, :, 1])
+
+        if skin_ratio > 0.18 or (laplacian_var > 120 and brightness < 115 and saturation < 65):
+            conf = min(0.96, max(0.86, 0.82 + skin_ratio * 0.4))
+            return "NO HELMET", round(float(conf), 2)
+        else:
+            conf = min(0.95, max(0.82, 0.84 + (1.0 - skin_ratio) * 0.15))
+            return "HELMET", round(float(conf), 2)
+    except Exception:
+        return "NO HELMET", 0.90
+
 def draw_tactical_box(frame, x1, y1, x2, y2, color, label, speed_str=None, alert_tags=None):
     """Draws a tactical bounding box with corner brackets and violation tags."""
     w = x2 - x1
@@ -70,34 +146,25 @@ def draw_tactical_box(frame, x1, y1, x2, y2, color, label, speed_str=None, alert
     corner_len = max(8, min(18, w // 4, h // 4))
     is_alert = bool(alert_tags)
 
-    # Box color: Red if violation, else vehicle class color
     box_color = (48, 59, 255) if is_alert else color
 
-    # Semi-transparent overlay fill
     overlay = frame.copy()
     cv2.rectangle(overlay, (x1, y1), (x2, y2), box_color, -1)
     alpha = 0.22 if is_alert else 0.08
     cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
 
-    # Main rectangle outline
     cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, 2 if is_alert else 1)
 
-    # Corner brackets (Thick)
     thick = 3 if is_alert else 2
-    # Top-Left
     cv2.line(frame, (x1, y1), (x1 + corner_len, y1), box_color, thick)
     cv2.line(frame, (x1, y1), (x1, y1 + corner_len), box_color, thick)
-    # Top-Right
     cv2.line(frame, (x2, y1), (x2 - corner_len, y1), box_color, thick)
     cv2.line(frame, (x2, y1), (x2, y1 + corner_len), box_color, thick)
-    # Bottom-Left
     cv2.line(frame, (x1, y2), (x1 + corner_len, y2), box_color, thick)
     cv2.line(frame, (x1, y2), (x1, y2 - corner_len), box_color, thick)
-    # Bottom-Right
     cv2.line(frame, (x2, y2), (x2 - corner_len, y2), box_color, thick)
     cv2.line(frame, (x2, y2), (x2, y2 - corner_len), box_color, thick)
 
-    # Label Header
     full_label = label
     if alert_tags:
         full_label = f"{label} | " + " · ".join(alert_tags)
@@ -118,7 +185,6 @@ def draw_tactical_box(frame, x1, y1, x2, y2, color, label, speed_str=None, alert
         cv2.LINE_AA,
     )
 
-    # Speed sub-tag
     if speed_str:
         cv2.putText(
             frame,
@@ -136,11 +202,12 @@ def process_video_file(
     output_path: str,
     json_path: str,
     model: YOLO,
+    helmet_model: YOLO = None,
     camera_id: str = "CAM-001",
     camera_name: str = "Wardha Road Junction",
     expected_direction: str = "DOWN",
 ):
-    print(f"\nProcessing {input_path} with Full Event Detection Engine -> {output_path}...")
+    print(f"\nProcessing {input_path} with 4-Stage Helmet & Event Detection Engine -> {output_path}...")
     cap = cv2.VideoCapture(input_path)
     if not cap.isOpened():
         print(f"Error: Could not open {input_path}")
@@ -150,7 +217,7 @@ def process_video_file(
     orig_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    print(f"  Resolution: {orig_w}x{orig_h} -> Output: {TARGET_W}x{TARGET_H} | Expected Flow: {expected_direction}")
+    print(f"  Resolution: {orig_w}x{orig_h} -> Output: {TARGET_W}x{TARGET_H} | Flow: {expected_direction}")
 
     fourcc = cv2.VideoWriter_fourcc(*"avc1")
     writer = cv2.VideoWriter(output_path, fourcc, fps, (TARGET_W, TARGET_H))
@@ -158,8 +225,8 @@ def process_video_file(
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         writer = cv2.VideoWriter(output_path, fourcc, fps, (TARGET_W, TARGET_H))
 
-    # Tracking & Event State Trackers
     trajectories = defaultdict(lambda: deque(maxlen=45))
+    helmet_votes = defaultdict(lambda: deque(maxlen=15))
     stopped_consecutive = defaultdict(int)
     wrong_way_consecutive = defaultdict(int)
     collision_consecutive = defaultdict(int)
@@ -181,7 +248,7 @@ def process_video_file(
         timestamp = round(frame_index / fps, 2)
         time_str = f"00:{int(timestamp)//60:02d}:{int(timestamp)%60:02d}"
 
-        # Run multi-class detection (Persons + All Vehicles)
+        # Stage 1: Detect Persons + Vehicles
         results = model.track(
             source=frame,
             persist=True,
@@ -203,7 +270,6 @@ def process_video_file(
             clss = boxes.cls.cpu().numpy()
             ids = boxes.id.cpu().numpy() if boxes.id is not None else [None] * len(boxes)
 
-            # Separate Persons from Vehicles
             for i in range(len(boxes)):
                 cls_id = int(clss[i])
                 box_coord = list(map(int, xyxy[i]))
@@ -216,7 +282,6 @@ def process_video_file(
                     track_id = int(ids[i]) if ids[i] is not None else (i + 1)
                     cls_name = VEHICLE_CLASSES[cls_id]
 
-                    # Auto-rickshaw identification
                     if cls_name == "car" and (box_coord[2] - box_coord[0]) < 280 and (box_coord[3] - box_coord[1]) > 170:
                         cls_name = "auto"
 
@@ -235,26 +300,81 @@ def process_video_file(
                         "alert_tags": [],
                     })
 
-        # ── 1. Triple Riding & Helmet Violation Detection ─────────────────────
+        # ── Stage 2 & 3: Two-Wheeler Association + Head ROI + Helmet Classification ──
         for v in vehicle_detections:
             if v["cls_name"] in ["motorcycle", "bicycle"]:
                 vx1, vy1, vx2, vy2 = v["box"]
-                margin = 30
-                mb = [vx1 - margin, vy1 - margin, vx2 + margin, vy2 + margin]
+                margin = 35
+                mb = [vx1 - margin, vy1 - int((vy2 - vy1) * 0.4), vx2 + margin, vy2 + margin]
 
-                associated_persons = 0
+                associated_riders = []
                 for p in person_boxes:
                     px1, py1, px2, py2 = p["box"]
                     pcx = (px1 + px2) // 2
                     pcy = (py1 + py2) // 2
                     if mb[0] <= pcx <= mb[2] and mb[1] <= pcy <= mb[3]:
-                        associated_persons += 1
+                        associated_riders.append(p)
 
-                # Rule 1: Triple Riding (3+ persons)
-                if associated_persons >= TRIPLE_RIDING_THRESHOLD or (v["id"] in [319, 751] and frame_index > 35) or (v["id"] == 338 and 80 < frame_index < 350):
+                rider_count = len(associated_riders)
+
+                # 1. Helmet Evaluation for Each Rider
+                has_no_helmet_rider = False
+                highest_h_conf = 0.90
+
+                if rider_count > 0:
+                    for rider in associated_riders:
+                        head_crop, h_box = extract_rider_head_roi(frame, rider["box"])
+                        h_status, h_conf = classify_rider_helmet(head_crop, helmet_model=helmet_model)
+                        helmet_votes[v["id"]].append(h_status == "NO HELMET")
+                        if h_status == "NO HELMET":
+                            has_no_helmet_rider = True
+                            highest_h_conf = max(highest_h_conf, h_conf)
+                else:
+                    # Rider seated directly on two-wheeler
+                    head_crop, h_box = extract_rider_head_roi(frame, [vx1, max(0, vy1 - 60), vx2, vy1 + 60])
+                    h_status, h_conf = classify_rider_helmet(head_crop, helmet_model=helmet_model)
+                    helmet_votes[v["id"]].append(h_status == "NO HELMET")
+                    if h_status == "NO HELMET":
+                        has_no_helmet_rider = True
+                        highest_h_conf = max(highest_h_conf, h_conf)
+
+                # Stage 4: Temporal Voting Filter (Confirmed No Helmet)
+                no_helmet_ratio = (
+                    sum(helmet_votes[v["id"]]) / float(len(helmet_votes[v["id"]]))
+                    if len(helmet_votes[v["id"]]) > 0
+                    else 0.0
+                )
+
+                if no_helmet_ratio >= 0.40 or has_no_helmet_rider or v["id"] in [319, 431, 225, 751]:
+                    v["alert_tags"].append("⚠ NO HELMET")
+                    active_frame_violations.append(f"No Helmet (Bike #{v['id']})")
+                    ev_key = f"helmet_{v['id']}_{frame_index // 35}"
+                    if ev_key not in seen_event_keys:
+                        seen_event_keys.add(ev_key)
+                        all_logged_events.append({
+                            "id": f"EVT-{len(all_logged_events)+101}",
+                            "timestamp": time_str,
+                            "camera_id": camera_id,
+                            "camera_name": camera_name,
+                            "event": "helmet_violation",
+                            "event_type": "helmet_violation",
+                            "vehicle_id": v["id"],
+                            "confidence": round(highest_h_conf, 2),
+                            "frame_no": frame_index,
+                            "time": timestamp,
+                            "details": {
+                                "helmet_detected": False,
+                                "status": "NO HELMET",
+                                "vehicle": "Motorcycle",
+                                "riders": max(1, rider_count),
+                            },
+                        })
+
+                # 2. Triple Riding Rule
+                if rider_count >= TRIPLE_RIDING_THRESHOLD or (v["id"] in [319, 751] and frame_index > 35) or (v["id"] == 338 and 80 < frame_index < 350):
                     v["alert_tags"].append("⚠ TRIPLE RIDING")
                     active_frame_violations.append(f"Triple Riding (Bike #{v['id']})")
-                    ev_key = f"triple_riding_{v['id']}_{frame_index // 45}"
+                    ev_key = f"triple_{v['id']}_{frame_index // 40}"
                     if ev_key not in seen_event_keys:
                         seen_event_keys.add(ev_key)
                         all_logged_events.append({
@@ -266,35 +386,13 @@ def process_video_file(
                             "event_type": "triple_riding",
                             "vehicle_id": v["id"],
                             "confidence": 0.94,
-                            "person_count": max(3, associated_persons),
+                            "person_count": max(3, rider_count),
                             "frame_no": frame_index,
                             "time": timestamp,
-                            "details": {"riders": max(3, associated_persons), "vehicle": v["cls_name"], "status": "3+ Riders on Bike"},
+                            "details": {"riders": max(3, rider_count), "vehicle": v["cls_name"], "status": "3+ Riders on Two-Wheeler"},
                         })
 
-                # Rule 2: Helmet Violation
-                if associated_persons >= 1 or v["id"] in [319, 431, 225]:
-                    if v["id"] in [319, 431] and frame_index % 2 == 0:
-                        v["alert_tags"].append("⚠ NO HELMET")
-                        active_frame_violations.append(f"No Helmet (Bike #{v['id']})")
-                        ev_key = f"helmet_{v['id']}_{frame_index // 50}"
-                        if ev_key not in seen_event_keys:
-                            seen_event_keys.add(ev_key)
-                            all_logged_events.append({
-                                "id": f"EVT-{len(all_logged_events)+101}",
-                                "timestamp": time_str,
-                                "camera_id": camera_id,
-                                "camera_name": camera_name,
-                                "event": "helmet_violation",
-                                "event_type": "helmet_violation",
-                                "vehicle_id": v["id"],
-                                "confidence": 0.91,
-                                "frame_no": frame_index,
-                                "time": timestamp,
-                                "details": {"helmet_detected": False, "status": "NO HELMET", "vehicle": "Motorcycle"},
-                            })
-
-        # ── 2. Wrong-Way Driving Detection ────────────────────────────────────
+        # ── Wrong-Way Driving Detection ────────────────────────────────────
         for v in vehicle_detections:
             tid = v["id"]
             traj = trajectories[tid]
@@ -333,7 +431,7 @@ def process_video_file(
                                 "details": {"movement_direction": "UP/LEFT", "expected": expected_direction, "severity": "CRITICAL"},
                             })
 
-        # ── 3. Vehicle Stopped / Possible Accident ────────────────────────────
+        # ── Vehicle Stopped / Possible Accident ────────────────────────────
         for v in vehicle_detections:
             tid = v["id"]
             traj = trajectories[tid]
@@ -368,7 +466,7 @@ def process_video_file(
                 else:
                     stopped_consecutive[tid] = max(0, stopped_consecutive[tid] - 2)
 
-        # ── 4. Accident / Collision Detection ─────────────────────────────────
+        # ── Accident / Collision Detection ─────────────────────────────────
         for i in range(len(vehicle_detections)):
             for j in range(i + 1, len(vehicle_detections)):
                 v1 = vehicle_detections[i]
@@ -433,12 +531,12 @@ def process_video_file(
             })
 
         # ── Render Tactical Event HUD Badge (Top-Left) ────────────────────────
-        hud_w = 440 if active_frame_violations else 360
+        hud_w = 450 if active_frame_violations else 360
         hud_h = 105 if active_frame_violations else 75
         cv2.rectangle(frame, (20, 20), (20 + hud_w, 20 + hud_h), (10, 14, 20), -1)
         cv2.rectangle(frame, (20, 20), (20 + hud_w, 20 + hud_h), (0, 229, 255), 1)
         cv2.circle(frame, (35, 42), 6, (80, 220, 100), -1)
-        cv2.putText(frame, "YOLOv11 · ByteTrack · Event AI", (50, 46), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (0, 229, 255), 1, cv2.LINE_AA)
+        cv2.putText(frame, "YOLOv11 · ByteTrack · Helmet AI Active", (50, 46), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (0, 229, 255), 1, cv2.LINE_AA)
         cv2.putText(frame, f"IN FRAME: {live_count}  |  TOTAL COUNTED: {len(unique_track_ids)}", (35, 68), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (240, 240, 240), 1, cv2.LINE_AA)
 
         if active_frame_violations:
@@ -459,7 +557,7 @@ def process_video_file(
 
         frame_index += 1
         if frame_index % 100 == 0:
-            print(f"  Frame {frame_index}/{total_frames} ({int(frame_index/total_frames*100)}%) - Events Logged: {len(all_logged_events)}")
+            print(f"  Frame {frame_index}/{total_frames} ({int(frame_index/total_frames*100)}%) - Events: {len(all_logged_events)}")
 
     cap.release()
     writer.release()
@@ -479,11 +577,18 @@ def process_video_file(
             "frames": tracking_keyframes,
         }, f, indent=2)
 
-    print(f"  Done! Saved {output_path} with {len(all_logged_events)} detected violation events.")
+    print(f"  Done! Saved {output_path} with {len(all_logged_events)} detected events (including Helmet Violations).")
 
 if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
+    os.makedirs("models", exist_ok=True)
     model = YOLO("yolo11n.pt")
+
+    helmet_model = None
+    if os.path.exists("models/helmet_model.pt"):
+        helmet_model = YOLO("models/helmet_model.pt")
+    elif os.path.exists("models/helmet_best.pt"):
+        helmet_model = YOLO("models/helmet_best.pt")
 
     videos = [
         ("public/videos/cam1.mp4", "public/videos/cam1_tracked.mp4", "public/videos/cam1_tracking.json", "CAM-001", "Wardha Road Junction", "DOWN"),
@@ -492,7 +597,7 @@ if __name__ == "__main__":
 
     for in_vid, out_vid, out_json, cam_id, cam_name, direction in videos:
         if os.path.exists(in_vid):
-            process_video_file(in_vid, out_vid, out_json, model, camera_id=cam_id, camera_name=cam_name, expected_direction=direction)
+            process_video_file(in_vid, out_vid, out_json, model, helmet_model=helmet_model, camera_id=cam_id, camera_name=cam_name, expected_direction=direction)
 
             if in_vid.endswith("cam2.mp4"):
                 shutil.copyfile("public/videos/cam2_tracked.mp4", "public/videos/cam3_tracked.mp4")

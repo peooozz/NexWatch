@@ -6,7 +6,7 @@
   "height": 720,
   "fps": 30,
   "total_vehicles": 47,
-  "events_logged": 42,
+  "events_logged": 44,
   "events": [
     {
       "id": "EVT-101",
@@ -382,6 +382,42 @@
     },
     {
       "id": "EVT-121",
+      "timestamp": "00:00:07",
+      "camera_id": "CAM-001",
+      "camera_name": "Wardha Road Junction",
+      "event": "helmet_violation",
+      "event_type": "helmet_violation",
+      "vehicle_id": 128,
+      "confidence": 0.9,
+      "frame_no": 237,
+      "time": 7.9,
+      "details": {
+        "helmet_detected": false,
+        "status": "NO HELMET",
+        "vehicle": "Motorcycle",
+        "riders": 1
+      }
+    },
+    {
+      "id": "EVT-122",
+      "timestamp": "00:00:08",
+      "camera_id": "CAM-001",
+      "camera_name": "Wardha Road Junction",
+      "event": "helmet_violation",
+      "event_type": "helmet_violation",
+      "vehicle_id": 128,
+      "confidence": 0.96,
+      "frame_no": 245,
+      "time": 8.17,
+      "details": {
+        "helmet_detected": false,
+        "status": "NO HELMET",
+        "vehicle": "Motorcycle",
+        "riders": 1
+      }
+    },
+    {
+      "id": "EVT-123",
       "timestamp": "00:00:09",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -399,7 +435,7 @@
       }
     },
     {
-      "id": "EVT-122",
+      "id": "EVT-124",
       "timestamp": "00:00:09",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -417,7 +453,7 @@
       }
     },
     {
-      "id": "EVT-123",
+      "id": "EVT-125",
       "timestamp": "00:00:11",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -434,7 +470,7 @@
       }
     },
     {
-      "id": "EVT-124",
+      "id": "EVT-126",
       "timestamp": "00:00:12",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -452,7 +488,7 @@
       }
     },
     {
-      "id": "EVT-125",
+      "id": "EVT-127",
       "timestamp": "00:00:13",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -470,7 +506,7 @@
       }
     },
     {
-      "id": "EVT-126",
+      "id": "EVT-128",
       "timestamp": "00:00:17",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -487,7 +523,7 @@
       }
     },
     {
-      "id": "EVT-127",
+      "id": "EVT-129",
       "timestamp": "00:00:18",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -504,7 +540,7 @@
       }
     },
     {
-      "id": "EVT-128",
+      "id": "EVT-130",
       "timestamp": "00:00:20",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -521,7 +557,7 @@
       }
     },
     {
-      "id": "EVT-129",
+      "id": "EVT-131",
       "timestamp": "00:00:20",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -538,7 +574,7 @@
       }
     },
     {
-      "id": "EVT-130",
+      "id": "EVT-132",
       "timestamp": "00:00:21",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -555,7 +591,7 @@
       }
     },
     {
-      "id": "EVT-131",
+      "id": "EVT-133",
       "timestamp": "00:00:21",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -572,7 +608,7 @@
       }
     },
     {
-      "id": "EVT-132",
+      "id": "EVT-134",
       "timestamp": "00:00:22",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -589,7 +625,7 @@
       }
     },
     {
-      "id": "EVT-133",
+      "id": "EVT-135",
       "timestamp": "00:00:22",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -606,7 +642,7 @@
       }
     },
     {
-      "id": "EVT-134",
+      "id": "EVT-136",
       "timestamp": "00:00:22",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -623,7 +659,7 @@
       }
     },
     {
-      "id": "EVT-135",
+      "id": "EVT-137",
       "timestamp": "00:00:23",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -641,7 +677,7 @@
       }
     },
     {
-      "id": "EVT-136",
+      "id": "EVT-138",
       "timestamp": "00:00:24",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -659,7 +695,7 @@
       }
     },
     {
-      "id": "EVT-137",
+      "id": "EVT-139",
       "timestamp": "00:00:24",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -676,7 +712,7 @@
       }
     },
     {
-      "id": "EVT-138",
+      "id": "EVT-140",
       "timestamp": "00:00:24",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -693,7 +729,7 @@
       }
     },
     {
-      "id": "EVT-139",
+      "id": "EVT-141",
       "timestamp": "00:00:24",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -710,7 +746,7 @@
       }
     },
     {
-      "id": "EVT-140",
+      "id": "EVT-142",
       "timestamp": "00:00:26",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -727,7 +763,7 @@
       }
     },
     {
-      "id": "EVT-141",
+      "id": "EVT-143",
       "timestamp": "00:00:26",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -744,7 +780,7 @@
       }
     },
     {
-      "id": "EVT-142",
+      "id": "EVT-144",
       "timestamp": "00:00:26",
       "camera_id": "CAM-001",
       "camera_name": "Wardha Road Junction",
@@ -6859,7 +6895,9 @@
           "y": 220,
           "w": 88,
           "h": 82,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -6876,6 +6914,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #18)",
         "Wrong-Way (Veh #120)"
       ]
@@ -6908,7 +6947,9 @@
           "y": 220,
           "w": 91,
           "h": 82,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -6925,6 +6966,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #18)",
         "Wrong-Way (Veh #120)"
       ]
@@ -6957,7 +6999,9 @@
           "y": 222,
           "w": 95,
           "h": 83,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -6974,6 +7018,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #18)",
         "Wrong-Way (Veh #120)"
       ]
@@ -6993,7 +7038,9 @@
           "y": 225,
           "w": 98,
           "h": 83,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7010,6 +7057,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)"
       ]
     },
@@ -7028,7 +7076,9 @@
           "y": 227,
           "w": 99,
           "h": 81,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7045,6 +7095,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)"
       ]
     },
@@ -7063,7 +7114,9 @@
           "y": 224,
           "w": 107,
           "h": 86,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7093,6 +7146,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7112,7 +7166,9 @@
           "y": 225,
           "w": 111,
           "h": 86,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7142,6 +7198,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7161,7 +7218,9 @@
           "y": 228,
           "w": 110,
           "h": 83,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7191,6 +7250,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7210,7 +7270,9 @@
           "y": 230,
           "w": 115,
           "h": 84,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7240,6 +7302,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7259,7 +7322,9 @@
           "y": 236,
           "w": 115,
           "h": 80,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7289,6 +7354,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7308,7 +7374,9 @@
           "y": 237,
           "w": 118,
           "h": 80,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7349,6 +7417,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7368,7 +7437,9 @@
           "y": 239,
           "w": 120,
           "h": 78,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7420,6 +7491,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7439,7 +7511,9 @@
           "y": 231,
           "w": 136,
           "h": 88,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7491,6 +7565,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7510,7 +7585,9 @@
           "y": 229,
           "w": 141,
           "h": 90,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7551,6 +7628,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7570,7 +7648,9 @@
           "y": 235,
           "w": 135,
           "h": 85,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7598,6 +7678,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)"
       ]
     },
@@ -7616,7 +7697,9 @@
           "y": 232,
           "w": 141,
           "h": 89,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7655,6 +7738,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)"
       ]
     },
@@ -7673,7 +7757,9 @@
           "y": 230,
           "w": 140,
           "h": 91,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7712,6 +7798,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)"
       ]
     },
@@ -7730,7 +7817,9 @@
           "y": 229,
           "w": 128,
           "h": 92,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7771,6 +7860,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7790,7 +7880,9 @@
           "y": 237,
           "w": 102,
           "h": 84,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7842,6 +7934,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7861,7 +7954,9 @@
           "y": 239,
           "w": 94,
           "h": 81,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7913,6 +8008,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)",
         "Wrong-Way (Veh #18)"
       ]
@@ -7932,7 +8028,9 @@
           "y": 240,
           "w": 79,
           "h": 83,
-          "tags": []
+          "tags": [
+            "\u26a0 NO HELMET"
+          ]
         },
         {
           "id": "TRK-120",
@@ -7960,6 +8058,7 @@
         }
       ],
       "active_violations": [
+        "No Helmet (Bike #128)",
         "Wrong-Way (Veh #120)"
       ]
     },
