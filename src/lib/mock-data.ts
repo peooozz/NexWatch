@@ -77,13 +77,15 @@ const EVENT_CONFIGS: {
   label: string;
   defaultClass: AlertVehicleDetails["objectClass"];
 }[] = [
-  { type: "accident_collision", severity: "critical", label: "High-Impact Collision Detected (100% Conf)", defaultClass: "Auto Rickshaw" },
-  { type: "accident_collision", severity: "critical", label: "Multi-Vehicle Crash Incident (100% Conf)", defaultClass: "Sedan" },
-  { type: "illegal_parking", severity: "high", label: "Illegal Parking (Red Zone)", defaultClass: "Auto Rickshaw" },
+  { type: "accident_collision", severity: "critical", label: "High-Impact Collision (100% Confirmed)", defaultClass: "Auto Rickshaw" },
+  { type: "accident_collision", severity: "critical", label: "Multi-Vehicle Crash Incident (100% Confirmed)", defaultClass: "Sedan" },
+  { type: "illegal_parking", severity: "high", label: "Illegal Parking / Obstruction (Red Zone)", defaultClass: "Auto Rickshaw" },
   { type: "illegal_parking", severity: "medium", label: "Illegal Parking (Bus Lane)", defaultClass: "SUV" },
-  { type: "wrong_way", severity: "critical", label: "Wrong-Way Auto Entry", defaultClass: "Auto Rickshaw" },
-  { type: "wrong_way", severity: "critical", label: "Wrong-Way Vehicle Entry", defaultClass: "Motorcycle" },
-  { type: "speed_violation", severity: "high", label: "Speed Limit Violation (82 km/h)", defaultClass: "SUV" },
+  { type: "wrong_way", severity: "critical", label: "Wrong-Way Movement Detected", defaultClass: "Auto Rickshaw" },
+  { type: "wrong_way", severity: "critical", label: "Contraflow Driving Detected", defaultClass: "Motorcycle" },
+  { type: "triple_riding", severity: "high", label: "Triple Riding on Two-Wheeler (3 Pax)", defaultClass: "Motorcycle" },
+  { type: "helmet_violation", severity: "medium", label: "Helmet Violation (No Headgear)", defaultClass: "Motorcycle" },
+  { type: "speed_violation", severity: "high", label: "Speed Limit Exceeded (78 km/h)", defaultClass: "SUV" },
   { type: "loitering", severity: "medium", label: "Prolonged Loitering (> 180s)", defaultClass: "Pedestrian" },
   { type: "crowd_density", severity: "critical", label: "Surge Crowd Density (> 85 pax/100m²)", defaultClass: "Crowd Group" },
   { type: "restricted_perimeter", severity: "high", label: "Perimeter Geo-fence Breach", defaultClass: "Truck" },
@@ -91,12 +93,14 @@ const EVENT_CONFIGS: {
 
 export const EVENT_LABELS: Record<AlertEventType, string> = {
   accident_collision: "🚨 High-Impact Crash (100% Accuracy)",
-  illegal_parking: "Illegal Parking",
-  loitering: "Loitering Detected",
-  wrong_way: "Wrong-Way Movement",
-  crowd_density: "Crowd Density Alert",
-  speed_violation: "Speed Violation",
-  restricted_perimeter: "Perimeter Breach",
+  illegal_parking: "🛑 Illegal Parking / Red Zone",
+  wrong_way: "⛔ Wrong-Way / Contraflow",
+  triple_riding: "🏍️ Triple Riding Detected",
+  helmet_violation: "⛑️ Helmet Violation",
+  speed_violation: "⚡ Speed Limit Exceeded",
+  crowd_density: "👥 Surge Crowd Density",
+  loitering: "⏳ Loitering Detected",
+  restricted_perimeter: "🚧 Perimeter Breach",
 };
 
 export function getEventLabel(type: AlertEventType): string {

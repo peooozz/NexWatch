@@ -296,6 +296,16 @@ function CameraTile({
                       <text x={s1_x + 6} y={s1_y - 4} fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
                         [SEDAN-102] CAR 94% · 48 km/h
                       </text>
+
+                      {/* Active Violation Badge on CAM-001 */}
+                      {activeAlert && (
+                        <g className="animate-pulse">
+                          <rect x={a1_x} y={a1_y + 112} width="150" height="17" fill="#FF3B30" rx="2" />
+                          <text x={a1_x + 75} y={a1_y + 124} textAnchor="middle" fill="#FFFFFF" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                            {activeAlert.eventType === "speed_violation" ? "⚡ SPEEDING (> 75 km/h)" : "⛔ CONTRAFLOW ENTRY"}
+                          </text>
+                        </g>
+                      )}
                     </g>
                   );
                 })()}
@@ -326,6 +336,16 @@ function CameraTile({
                       <text x={b2_x + 4} y={b2_y - 4} fill="#000000" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
                         [MTR-205] BIKE 91%
                       </text>
+
+                      {/* Active Violation Badge on CAM-002 */}
+                      {activeAlert && (
+                        <g className="animate-pulse">
+                          <rect x={b2_x} y={b2_y + 92} width="115" height="17" fill="#FF3B30" rx="2" />
+                          <text x={b2_x + 57} y={b2_y + 104} textAnchor="middle" fill="#FFFFFF" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                            {activeAlert.eventType === "triple_riding" ? "🏍️ TRIPLE RIDING" : "⛑️ NO HELMET"}
+                          </text>
+                        </g>
+                      )}
                     </g>
                   );
                 })()}
@@ -355,7 +375,7 @@ function CameraTile({
                       {/* Auto-Rickshaw 2 (Turning Right in Circle) */}
                       <rect x={auto2_x} y={auto2_y} width="145" height="110" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
                       <rect x={auto2_x} y={auto2_y - 17} width="155" height="17" fill="#FB923C" rx="2" />
-                      <text x={auto2_x + 6} y={auto2_y - 5} fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                      <text x={auto2_x + 6} y={auto2_y - 5} fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
                         [AUTO-302] 🛺 AUTO-RICKSHAW 98%
                       </text>
                       <rect x={auto2_x + 6} y={auto2_y + 88} width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
@@ -369,6 +389,16 @@ function CameraTile({
                       <text x={bus_x + 6} y={bus_y - 5} fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
                         [BUS-303] BEST BUS 96%
                       </text>
+
+                      {/* Active Violation on CAM-003 */}
+                      {activeAlert && (
+                        <g className="animate-pulse">
+                          <rect x={auto1_x} y={auto1_y + 118} width="155" height="17" fill="#FF3B30" rx="2" />
+                          <text x={auto1_x + 77} y={auto1_y + 130} textAnchor="middle" fill="#FFFFFF" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                            {activeAlert.eventType === "accident_collision" ? "💥 100% COLLISION VECTOR" : "🛑 RED ZONE OBSTRUCTION"}
+                          </text>
+                        </g>
+                      )}
                     </g>
                   );
                 })()}
@@ -400,7 +430,7 @@ function CameraTile({
                       {/* Auto-Rickshaw 2 (Turning Right) */}
                       <rect x={auto2_x} y={auto2_y} width="150" height="115" fill="rgba(251, 146, 60, 0.12)" stroke="#FB923C" strokeWidth="2" rx="2" />
                       <rect x={auto2_x} y={auto2_y - 17} width="160" height="17" fill="#FB923C" rx="2" />
-                      <text x={auto2_x + 6} y={auto2_y - 5} fill="#000000" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                      <text x={auto2_x + 6} y={auto2_y - 5} fill="#000000" fontSize="8.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
                         [AUTO-402] 🛺 AUTO-RICKSHAW 98%
                       </text>
                       <rect x={auto2_x + 6} y={auto2_y + 90} width="90" height="15" fill="#000000" opacity="0.85" rx="2" />
@@ -421,6 +451,16 @@ function CameraTile({
                       <text x={ped_x + 4} y={ped_y - 4} fill="#000000" fontSize="7.5" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
                         [PED-405] 93%
                       </text>
+
+                      {/* Active Violation on CAM-004 */}
+                      {activeAlert && (
+                        <g className="animate-pulse">
+                          <rect x={auto1_x} y={auto1_y + 120} width="160" height="17" fill="#FF3B30" rx="2" />
+                          <text x={auto1_x + 80} y={auto1_y + 132} textAnchor="middle" fill="#FFFFFF" fontSize="8" fontFamily="JetBrains Mono, monospace" fontWeight="bold">
+                            {activeAlert.eventType === "accident_collision" ? "💥 100% COLLISION VECTOR" : "🛑 STAND CONGESTION"}
+                          </text>
+                        </g>
+                      )}
                     </g>
                   );
                 })()}
@@ -995,7 +1035,7 @@ function LiveAlertFeed() {
         </div>
 
         {/* Quick Filter Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
           {(["all", "new", "acknowledged", "resolved"] as const).map((st) => (
             <button
               key={st}
@@ -1023,6 +1063,31 @@ function LiveAlertFeed() {
               }`}
             >
               {sev === "all" ? "All Sev" : sev}
+            </button>
+          ))}
+        </div>
+
+        {/* Quick Event Category Pills */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 text-[9px] font-mono-data">
+          {[
+            { label: "All Types", query: "" },
+            { label: "💥 Crashes (100%)", query: "Crash" },
+            { label: "🛺 Auto-Rickshaw", query: "Auto" },
+            { label: "⛔ Wrong-Way", query: "Wrong" },
+            { label: "🛑 Parking", query: "Parking" },
+            { label: "🏍️ Two-Wheeler", query: "Riding" },
+            { label: "⚡ Speeding", query: "Speed" },
+          ].map((cat) => (
+            <button
+              key={cat.label}
+              onClick={() => setSearchQuery(cat.query)}
+              className={`px-2 py-0.5 rounded transition-all cursor-pointer flex-shrink-0 ${
+                searchQuery === cat.query
+                  ? "bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 font-bold"
+                  : "bg-[#07090E] text-gray-400 hover:text-white border border-[#1E2638]"
+              }`}
+            >
+              {cat.label}
             </button>
           ))}
         </div>

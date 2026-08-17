@@ -23,6 +23,8 @@ export type AlertEventType =
   | "illegal_parking"
   | "loitering"
   | "wrong_way"
+  | "triple_riding"
+  | "helmet_violation"
   | "crowd_density"
   | "speed_violation"
   | "restricted_perimeter";
