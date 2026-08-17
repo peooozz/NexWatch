@@ -17,7 +17,8 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger("NexWatchWhatsApp")
 
-DEFAULT_EMERGENCY_NUMBER = os.getenv("WHATSAPP_EMERGENCY_PHONE", "+919876543210")
+DEFAULT_EMERGENCY_NUMBER = os.getenv("TWILIO_WHATSAPP_TO", os.getenv("WHATSAPP_EMERGENCY_PHONE", "+919322166721"))
+DEFAULT_TWILIO_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+17372508034")
 
 def format_whatsapp_alert_message(alert: Dict[str, Any]) -> str:
     cam_name = alert.get("camera_name") or alert.get("cctv_area_name") or "Wardha Road Surveillance"

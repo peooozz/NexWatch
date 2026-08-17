@@ -118,7 +118,7 @@ export function formatWhatsAppAlertText(alert: Alert): string {
 📡 *CityEye Command Center | Twilio Emergency Dispatch*`;
 }
 
-export function generateWhatsAppClickUrl(alert: Alert, phone = "+919876543210"): string {
+export function generateWhatsAppClickUrl(alert: Alert, phone = "+919322166721"): string {
   const cleanPhone = phone.replace("+", "").replace(/\s+/g, "").replace(/-/g, "");
   const text = encodeURIComponent(formatWhatsAppAlertText(alert));
   return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${text}`;
@@ -1473,7 +1473,7 @@ function WhatsAppDispatchModal({
   alert: Alert | null;
   onClose: () => void;
 }) {
-  const [phoneNumber, setPhoneNumber] = useState("+919876543210");
+  const [phoneNumber, setPhoneNumber] = useState("+919322166721");
   const [isSending, setIsSending] = useState(false);
   const [dispatchStatus, setDispatchStatus] = useState<"idle" | "sent" | "error">("idle");
 
@@ -1550,7 +1550,7 @@ function WhatsAppDispatchModal({
         <div className="space-y-1.5">
           <label className="text-xs text-gray-300 font-medium flex items-center justify-between">
             <span>Recipient Emergency Phone (PCR / Ambulance / Police)</span>
-            <span className="text-[10px] text-gray-500 font-mono-data">E.164 Format</span>
+            <span className="text-[10px] text-gray-500 font-mono-data">Twilio Verified</span>
           </label>
           <div className="flex gap-2">
             <input
@@ -1558,13 +1558,13 @@ function WhatsAppDispatchModal({
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               className="flex-1 px-3 py-2 text-xs rounded-lg bg-[#141924] border border-[#1E2638] text-white font-mono-data outline-none focus:border-[#25D366]"
-              placeholder="+91 98765 43210"
+              placeholder="+91 93221 66721"
             />
             <button
-              onClick={() => setPhoneNumber("+919876543210")}
-              className="px-2.5 py-1.5 rounded-lg text-[10px] bg-[#141924] text-gray-300 hover:text-white border border-[#1E2638] cursor-pointer"
+              onClick={() => setPhoneNumber("+919322166721")}
+              className="px-2.5 py-1.5 rounded-lg text-[10px] bg-[#25D366]/15 text-[#25D366] font-bold border border-[#25D366]/40 cursor-pointer"
             >
-              Default PCR
+              My Phone
             </button>
           </div>
         </div>
