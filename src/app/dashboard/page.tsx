@@ -886,14 +886,12 @@ function AlertCard({
             </span>
           </div>
 
-          {/* Camera Info */}
           <div className="flex items-center gap-1 text-[11px] text-gray-400 truncate font-mono-data">
             <span className="text-[#0091FF] font-medium">{alert.cameraId}</span>
             <span>·</span>
             <span className="truncate">{alert.cameraName}</span>
           </div>
 
-          {/* Target Details Badge */}
           {alert.vehicleDetails && (
             <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-mono-data">
               <span
@@ -917,7 +915,6 @@ function AlertCard({
         </div>
       </div>
 
-      {/* Action Quick Bar */}
       {alert.status === "new" && (
         <div
           className="flex border-t divide-x divide-[#1E2638] bg-[#0B0F17]/60 mt-2"
@@ -932,17 +929,6 @@ function AlertCard({
           >
             <Eye size={11} />
             Ack
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onOpenWhatsApp) onOpenWhatsApp(alert);
-            }}
-            className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-[10px] font-semibold text-[#25D366] hover:bg-[#25D366]/15 transition-colors cursor-pointer bg-[#25D366]/5"
-            title="Dispatch WhatsApp Emergency Alert via Twilio"
-          >
-            <MessageSquare size={11} className="text-[#25D366]" />
-            WhatsApp
           </button>
           <button
             onClick={(e) => {
@@ -964,16 +950,6 @@ function AlertCard({
             <Check size={11} />
             Resolve
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              updateAlertStatus(alert.id, "false_positive");
-            }}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-medium text-gray-400 hover:bg-white/5 transition-colors cursor-pointer"
-          >
-            <X size={11} />
-            False +
-          </button>
         </div>
       )}
     </motion.div>
@@ -983,7 +959,7 @@ function AlertCard({
 /* ═══════════════════════════════════════════════════════════════════════
    LIVE ALERT FEED PANEL
    ═══════════════════════════════════════════════════════════════════════ */
-function LiveAlertFeed({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) => void }) {
+function LiveAlertFeed() {
   const alerts = useDashboardStore((s) => s.alerts);
   const alertFilter = useDashboardStore((s) => s.alertFilter);
   const setAlertFilter = useDashboardStore((s) => s.setAlertFilter);
@@ -1019,7 +995,6 @@ function LiveAlertFeed({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) => 
         borderColor: "var(--border-subtle)",
       }}
     >
-      {/* Header */}
       <div
         className="flex items-center justify-between px-3.5 py-2.5 border-b bg-[#0B0F17]/90 flex-shrink-0"
         style={{ borderColor: "var(--border-subtle)" }}
@@ -1028,8 +1003,8 @@ function LiveAlertFeed({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) => 
           <Radio size={14} className="text-[#FF3B30] animate-live-pulse" />
           <span className="text-xs font-semibold text-white">Live Incident Queue</span>
           {newAlertsCount > 0 && (
-            <span className="text-[10px] font-mono-data font-bold px-1.5 py-0.2 rounded-full bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/40">
-              {newAlertsCount} new
+            <span className="px-1.5 py-0.5 text-[9px] font-mono-data font-bold rounded-full bg-[#FF3B30] text-white">
+              {newAlertsCount}
             </span>
           )}
         </div>
@@ -1037,36 +1012,32 @@ function LiveAlertFeed({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) => 
         {newAlertsCount > 0 && (
           <button
             onClick={acknowledgeAll}
-            className="flex items-center gap-1 text-[10px] font-mono-data px-2 py-1 rounded bg-[#0091FF]/15 text-[#00E5FF] hover:bg-[#0091FF]/25 border border-[#0091FF]/30 transition-all cursor-pointer"
-            title="Acknowledge all pending alerts"
+            className="flex items-center gap-1 text-[10px] font-mono-data text-[#00E5FF] hover:underline cursor-pointer"
           >
-            <CheckCheck size={11} />
+            <CheckCheck size={12} />
             Ack All
           </button>
         )}
       </div>
 
-      {/* Search and Filters Bar */}
-      <div className="p-2.5 space-y-2 border-b border-[#1E2638] bg-[#090C13]">
-        {/* Search Input */}
+      <div className="p-2.5 border-b bg-[#0E121A]/80 flex-shrink-0 space-y-2" style={{ borderColor: "var(--border-subtle)" }}>
         <div className="relative">
-          <Search size={12} className="absolute left-2.5 top-2.5 text-gray-500" />
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Filter by vehicle, plate, camera..."
-            className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg bg-[#141924] border border-[#1E2638] text-white placeholder-gray-500 outline-none focus:border-[#0091FF]"
+            placeholder="Filter by CCTV area, plate, or event..."
+            className="w-full pl-7 pr-3 py-1.5 rounded-lg bg-[#141924] border border-[#1E2638] text-xs text-white placeholder-gray-500 outline-none focus:border-[#0091FF] font-mono-data"
           />
         </div>
 
-        {/* Quick Filter Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+        <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
           {(["all", "new", "acknowledged", "resolved"] as const).map((st) => (
             <button
               key={st}
               onClick={() => setAlertFilter(st)}
-              className={`px-2 py-1 rounded-md text-[10px] font-mono-data capitalize transition-all cursor-pointer flex-shrink-0 ${
+              className={`px-2 py-1 rounded-md text-[10px] font-mono-data uppercase transition-all cursor-pointer flex-shrink-0 ${
                 alertFilter === st
                   ? "bg-[#0091FF] text-white font-semibold"
                   : "bg-[#141924] text-gray-400 hover:text-white border border-[#1E2638]"
@@ -1075,52 +1046,9 @@ function LiveAlertFeed({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) => 
               {st}
             </button>
           ))}
-
-          <div className="w-px h-4 bg-[#1E2638] mx-0.5 flex-shrink-0" />
-
-          {(["all", "critical", "high"] as const).map((sev) => (
-            <button
-              key={sev}
-              onClick={() => setSeverityFilter(sev)}
-              className={`px-2 py-1 rounded-md text-[10px] font-mono-data uppercase transition-all cursor-pointer flex-shrink-0 ${
-                severityFilter === sev
-                  ? "bg-[#FF3B30] text-white font-semibold"
-                  : "bg-[#141924] text-gray-400 hover:text-white border border-[#1E2638]"
-              }`}
-            >
-              {sev === "all" ? "All Sev" : sev}
-            </button>
-          ))}
-        </div>
-
-        {/* Quick Event Category Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 text-[9px] font-mono-data scrollbar-none">
-          {[
-            { label: "All Events", query: "" },
-            { label: "⛑️ Helmet Violation", query: "Helmet" },
-            { label: "🏍️ Triple Riding", query: "Triple" },
-            { label: "⛔ Wrong-Way", query: "Wrong" },
-            { label: "🛑 Stopped / Possible Crash", query: "Stopped" },
-            { label: "💥 Collision (100%)", query: "Collision" },
-            { label: "🚨 Accident / Stopped Vehicle", query: "Accident" },
-            { label: "🛺 Auto-Rickshaw", query: "Auto" },
-          ].map((cat) => (
-            <button
-              key={cat.label}
-              onClick={() => setSearchQuery(cat.query)}
-              className={`px-2 py-0.5 rounded transition-all cursor-pointer flex-shrink-0 ${
-                searchQuery === cat.query
-                  ? "bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 font-bold"
-                  : "bg-[#07090E] text-gray-400 hover:text-white border border-[#1E2638]"
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
         </div>
       </div>
 
-      {/* Feed List */}
       <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
         <AnimatePresence initial={false}>
           {filteredAlerts.length === 0 ? (
@@ -1129,7 +1057,7 @@ function LiveAlertFeed({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) => 
             </div>
           ) : (
             filteredAlerts.slice(0, 35).map((alert, i) => (
-              <AlertCard key={alert.id} alert={alert} isNew={i === 0} onOpenWhatsApp={onOpenWhatsApp} />
+              <AlertCard key={alert.id} alert={alert} isNew={i === 0} />
             ))
           )}
         </AnimatePresence>
@@ -1141,7 +1069,7 @@ function LiveAlertFeed({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) => 
 /* ═══════════════════════════════════════════════════════════════════════
    ALERT DETAIL & DISPATCH INVESTIGATION DRAWER
    ═══════════════════════════════════════════════════════════════════════ */
-function AlertDetailSheet({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) => void }) {
+function AlertDetailSheet() {
   const alerts = useDashboardStore((s) => s.alerts);
   const selectedId = useDashboardStore((s) => s.selectedAlertId);
   const setSelectedId = useDashboardStore((s) => s.setSelectedAlertId);
@@ -1151,34 +1079,9 @@ function AlertDetailSheet({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) 
 
   const alert = alerts.find((a) => a.id === selectedId);
   const [noteText, setNoteText] = useState("");
-  const [isPlayingScrubber, setIsPlayingScrubber] = useState(false);
-  const [scrubberPos, setScrubberPos] = useState(65); // percentage
-  const [playbackSpeed, setPlaybackSpeed] = useState<"0.5x" | "1.0x" | "2.0x">("1.0x");
   const [selectedUnit, setSelectedUnit] = useState("PCR Van #08 (Sitabuldi)");
 
   if (!alert) return null;
-
-  const severityColor = getSeverityColor(alert.severity);
-
-  const timelineSteps = [
-    { label: "Edge Detection (YOLOv11x)", time: alert.detectedAt, done: true },
-    { label: "Delivered to Command Bus", time: alert.deliveredAt, done: true },
-    {
-      label: `Operator Ack ${alert.acknowledgedBy ? `(${alert.acknowledgedBy})` : ""}`,
-      time: alert.status !== "new" ? alert.deliveredAt : null,
-      done: alert.status !== "new",
-    },
-    {
-      label: alert.dispatchedUnit ? `Unit Dispatched (${alert.dispatchedUnit.unitName})` : "Patrol Dispatch",
-      time: alert.dispatchedUnit ? alert.dispatchedUnit.dispatchedAt : null,
-      done: Boolean(alert.dispatchedUnit),
-    },
-    {
-      label: "Resolved / Citation Issued",
-      time: alert.resolvedAt || null,
-      done: alert.status === "resolved",
-    },
-  ];
 
   return (
     <AnimatePresence>
@@ -1203,23 +1106,11 @@ function AlertDetailSheet({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) 
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
           <div className="p-4 border-b border-[#1E2638] bg-[#0E121A] flex items-center justify-between sticky top-0 z-10">
             <div>
-              <div className="flex items-center gap-2">
-                <span
-                  className="px-2 py-0.5 text-[9px] font-mono-data font-bold uppercase rounded text-white"
-                  style={{ background: severityColor }}
-                >
-                  {alert.severity}
-                </span>
-                <span className="text-xs font-mono-data text-gray-400">{alert.id}</span>
-              </div>
-              <h3 className="text-sm font-semibold text-white mt-1">
-                {getEventLabel(alert.eventType)}
-              </h3>
+              <h3 className="text-sm font-semibold text-white">Incident Investigation</h3>
+              <p className="text-[10px] text-gray-400 font-mono-data">{alert.id}</p>
             </div>
-
             <button
               onClick={() => setSelectedId(null)}
               className="p-1.5 rounded-lg bg-[#141924] text-gray-400 hover:text-white border border-[#1E2638] cursor-pointer"
@@ -1228,377 +1119,60 @@ function AlertDetailSheet({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) 
             </button>
           </div>
 
-          {/* Drawer Body */}
           <div className="p-5 space-y-5 flex-1">
-            {/* Interactive Video Evidence Scrubber */}
             <div className="rounded-xl border border-[#1E2638] overflow-hidden bg-[#05070B]">
-              <div className="relative aspect-video">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={alert.snapshotUrl}
-                  alt="Incident Snapshot"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-2 left-2 px-2 py-1 rounded bg-black/80 text-[9px] font-mono-data text-[#00E5FF] border border-[#0091FF]/40">
-                  REC: {new Date(alert.detectedAt).toLocaleTimeString()} · KEYFRAME
+              <img src={alert.snapshotUrl} alt="Incident Snapshot" className="w-full aspect-video object-cover" />
+            </div>
+
+            <div className="rounded-xl border border-[#25D366]/30 p-3.5 bg-[#25D366]/5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#25D366]/20 border border-[#25D366]/40 flex items-center justify-center text-[#25D366]">
+                  <MessageSquare size={16} />
                 </div>
-              </div>
-
-              {/* Scrubber Controls */}
-              <div className="p-3 bg-[#0B0F17] border-t border-[#1E2638] space-y-2">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setIsPlayingScrubber(!isPlayingScrubber)}
-                    className="p-1.5 rounded-lg bg-[#0091FF] text-white cursor-pointer hover:bg-[#0077D4]"
-                  >
-                    {isPlayingScrubber ? <Pause size={12} /> : <Play size={12} />}
-                  </button>
-
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={scrubberPos}
-                    onChange={(e) => setScrubberPos(Number(e.target.value))}
-                    className="flex-1 accent-[#00E5FF] cursor-pointer h-1.5 bg-[#1E2638] rounded-lg"
-                  />
-
-                  <div className="flex items-center gap-1">
-                    {(["0.5x", "1.0x", "2.0x"] as const).map((sp) => (
-                      <button
-                        key={sp}
-                        onClick={() => setPlaybackSpeed(sp)}
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-mono-data cursor-pointer ${
-                          playbackSpeed === sp
-                            ? "bg-[#0091FF]/30 text-[#00E5FF] border border-[#0091FF]/50"
-                            : "text-gray-500 hover:text-white"
-                        }`}
-                      >
-                        {sp}
-                      </button>
-                    ))}
+                <div>
+                  <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    Twilio Automated WhatsApp SOS
+                    <span className="text-[9px] font-mono-data px-1.5 py-0.2 rounded bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/40">
+                      ACTIVE
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-gray-400 font-mono-data">
+                    Recipient: <span className="text-[#25D366] font-bold">+91 93221 66721</span>
                   </div>
                 </div>
               </div>
+              <span className="text-[10px] font-mono-data text-[#00E5FF] px-2 py-1 rounded bg-[#0091FF]/10 border border-[#0091FF]/30">
+                Auto-Dispatched
+              </span>
             </div>
 
-            {/* Incident Telemetry Card */}
             <div className="rounded-xl border border-[#1E2638] p-4 bg-[#0E121A] space-y-3">
-              <h4 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                Object & Location Telemetry
-              </h4>
-              <div className="grid grid-cols-2 gap-3 font-mono-data text-xs">
-                <div>
-                  <span className="text-gray-500 text-[10px] block">CCTV Node</span>
-                  <span className="text-white font-medium">{alert.cameraName} ({alert.cameraId})</span>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-[10px] block">Target Track ID</span>
-                  <span className="text-[#00E5FF] font-medium">{alert.trackId}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-[10px] block">Object Class</span>
-                  <span className="text-white font-medium">{alert.vehicleDetails?.objectClass || "N/A"}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-[10px] block">License Plate</span>
-                  <span className="text-[#FB923C] font-bold">{alert.vehicleDetails?.licensePlate || "N/A"}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-[10px] block">Confidence Rating</span>
-                  <span className="text-[#10B981] font-bold">{Math.round(alert.confidence * 100)}%</span>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-[10px] block">Detection Latency</span>
-                  <span className="text-white font-medium">{(alert.latencyMs / 1000).toFixed(2)}s</span>
-                </div>
+              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                Rapid Response / Patrol Dispatch
+              </span>
+              <div className="flex gap-2">
+                <select
+                  value={selectedUnit}
+                  onChange={(e) => setSelectedUnit(e.target.value)}
+                  className="flex-1 text-xs rounded-lg bg-[#141924] border border-[#1E2638] text-white px-2.5 py-1.5 outline-none font-mono-data"
+                >
+                  <option>PCR Van #08 (Sitabuldi)</option>
+                  <option>Traffic Interceptor #03</option>
+                  <option>Municipal Tow Truck #02</option>
+                  <option>Quick Response Team (QRT-1)</option>
+                </select>
+                <button
+                  onClick={() => dispatchUnit(alert.id, selectedUnit, "PCR Patrol")}
+                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#FF9500] text-black hover:bg-[#E08500] transition-colors cursor-pointer"
+                >
+                  Dispatch
+                </button>
               </div>
             </div>
-
-            {/* WhatsApp Twilio Direct Dispatch Card */}
-            <div className="rounded-xl border border-[#25D366]/30 p-4 bg-[#25D366]/5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#25D366]">
-                  <MessageSquare size={14} />
-                  <span>Twilio WhatsApp Emergency Dispatch</span>
-                </div>
-                <span className="text-[9px] font-mono-data px-1.5 py-0.5 rounded bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/40 font-bold">
-                  ACTIVE
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-400 leading-relaxed">
-                Transmit instant WhatsApp SOS telemetry with CCTV coordinates, license plate, and live video stream URL to PCR/EMS dispatchers.
-              </p>
-              <button
-                onClick={() => {
-                  if (onOpenWhatsApp) onOpenWhatsApp(alert);
-                }}
-                className="w-full py-2 rounded-lg text-xs font-bold bg-[#25D366] text-black hover:bg-[#1EBE5D] transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(37,211,102,0.25)]"
-              >
-                <MessageSquare size={13} />
-                Open WhatsApp SOS Dispatcher
-              </button>
-            </div>
-
-            {/* Rapid Response Dispatch Unit */}
-            <div className="rounded-xl border border-[#1E2638] p-4 bg-[#0E121A] space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                  Rapid Response / Patrol Dispatch
-                </span>
-                {alert.dispatchedUnit && (
-                  <span className="text-[10px] font-mono-data text-[#10B981]">
-                    ETA: ~{alert.dispatchedUnit.etaMinutes} MIN
-                  </span>
-                )}
-              </div>
-
-              {alert.dispatchedUnit ? (
-                <div className="p-3 rounded-lg bg-[#141924] border border-[#1E2638] text-xs font-mono-data space-y-1">
-                  <div className="text-white font-medium">{alert.dispatchedUnit.unitName}</div>
-                  <div className="text-gray-400 text-[10px]">
-                    Status: <span className="text-[#00E5FF] uppercase">{alert.dispatchedUnit.status}</span> · Dispatched: {new Date(alert.dispatchedUnit.dispatchedAt).toLocaleTimeString()}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <select
-                    value={selectedUnit}
-                    onChange={(e) => setSelectedUnit(e.target.value)}
-                    className="flex-1 text-xs rounded-lg bg-[#141924] border border-[#1E2638] text-white px-2.5 py-1.5 outline-none font-mono-data"
-                  >
-                    <option>PCR Van #08 (Sitabuldi)</option>
-                    <option>Traffic Interceptor #03</option>
-                    <option>Municipal Tow Truck #02</option>
-                    <option>Quick Response Team (QRT-1)</option>
-                  </select>
-                  <button
-                    onClick={() => dispatchUnit(alert.id, selectedUnit, "PCR Patrol")}
-                    className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#FF9500] text-black hover:bg-[#E08500] transition-colors cursor-pointer"
-                  >
-                    Dispatch
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Status Timeline */}
-            <div className="rounded-xl border border-[#1E2638] p-4 bg-[#0E121A] space-y-3">
-              <h4 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                Incident Triage Lifecycle
-              </h4>
-              <div className="space-y-3 font-mono-data text-xs">
-                {timelineSteps.map((s, idx) => (
-                  <div key={s.label} className="flex gap-3 items-start">
-                    <div
-                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] flex-shrink-0 mt-0.5 ${
-                        s.done ? "bg-[#0091FF] text-white font-bold" : "bg-[#1E2638] text-gray-500"
-                      }`}
-                    >
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <p className={`font-medium ${s.done ? "text-white" : "text-gray-500"}`}>
-                        {s.label}
-                      </p>
-                      {s.time && (
-                        <p className="text-[10px] text-gray-400">
-                          {new Date(s.time).toLocaleString("en-IN")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Operator Notes */}
-            <div className="rounded-xl border border-[#1E2638] p-4 bg-[#0E121A] space-y-2">
-              <h4 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                Operator Incident Log
-              </h4>
-              <textarea
-                value={noteText || alert.notes || ""}
-                onChange={(e) => setNoteText(e.target.value)}
-                onBlur={() => {
-                  if (noteText) addNote(alert.id, noteText);
-                }}
-                rows={3}
-                placeholder="Log operator observations or e-challan citation numbers..."
-                className="w-full rounded-lg bg-[#141924] border border-[#1E2638] p-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-[#0091FF] resize-none font-mono-data"
-              />
-            </div>
-          </div>
-
-          {/* Drawer Actions Footer */}
-          <div className="p-4 border-t border-[#1E2638] bg-[#0E121A] flex gap-2 sticky bottom-0 z-10">
-            {alert.status === "new" && (
-              <button
-                onClick={() => updateStatus(alert.id, "acknowledged", "Operator")}
-                className="flex-1 py-2.5 rounded-lg text-xs font-semibold bg-[#FF9500] text-black hover:bg-[#E08500] cursor-pointer"
-              >
-                Acknowledge Incident
-              </button>
-            )}
-            {alert.status !== "resolved" && (
-              <button
-                onClick={() => updateStatus(alert.id, "resolved", "Operator")}
-                className="flex-1 py-2.5 rounded-lg text-xs font-semibold bg-[#10B981] text-white hover:bg-[#0E9F6E] cursor-pointer"
-              >
-                Resolve & Close
-              </button>
-            )}
-            {alert.status === "new" && (
-              <button
-                onClick={() => updateStatus(alert.id, "false_positive")}
-                className="px-3 py-2.5 rounded-lg text-xs font-medium bg-[#141924] text-gray-400 hover:text-white border border-[#1E2638] cursor-pointer"
-              >
-                False +
-              </button>
-            )}
           </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   TWILIO WHATSAPP EMERGENCY DISPATCH MODAL
-   ═══════════════════════════════════════════════════════════════════════ */
-function WhatsAppDispatchModal({
-  alert,
-  onClose,
-}: {
-  alert: Alert | null;
-  onClose: () => void;
-}) {
-  const [phoneNumber, setPhoneNumber] = useState("+919322166721");
-  const [isSending, setIsSending] = useState(false);
-  const [dispatchStatus, setDispatchStatus] = useState<"idle" | "sent" | "error">("idle");
-
-  if (!alert) return null;
-
-  const messageText = formatWhatsAppAlertText(alert);
-  const waUrl = generateWhatsAppClickUrl(alert, phoneNumber);
-
-  const handleSendTwilio = async () => {
-    setIsSending(true);
-    try {
-      await fetch("/api/alerts/dispatch-whatsapp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          camera_id: alert.cameraId,
-          camera_name: alert.cameraName,
-          event_type: alert.eventType,
-          severity: alert.severity,
-          confidence: alert.confidence,
-          track_id: alert.trackId,
-          vehicle_details: alert.vehicleDetails,
-          detected_at: alert.detectedAt,
-          recipient_phone: phoneNumber,
-        }),
-      });
-      setDispatchStatus("sent");
-    } catch {
-      setDispatchStatus("sent");
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="w-full max-w-lg rounded-2xl border border-[#1E2638] bg-[#0B0F17] p-5 shadow-2xl space-y-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#1E2638] pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#25D366]/20 border border-[#25D366]/40 flex items-center justify-center text-[#25D366]">
-              <MessageSquare size={18} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                WhatsApp Emergency SOS Dispatch
-                <span className="text-[9px] font-mono-data px-1.5 py-0.5 rounded bg-[#0091FF]/20 text-[#00E5FF] border border-[#0091FF]/40">
-                  Twilio API
-                </span>
-              </h3>
-              <p className="text-[10px] text-gray-400 font-mono-data">
-                {alert.cameraName} · {getEventLabel(alert.eventType)}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-white rounded-lg bg-[#141924] border border-[#1E2638] cursor-pointer"
-          >
-            <X size={15} />
-          </button>
-        </div>
-
-        {/* Recipient Input */}
-        <div className="space-y-1.5">
-          <label className="text-xs text-gray-300 font-medium flex items-center justify-between">
-            <span>Recipient Emergency Phone (PCR / Ambulance / Police)</span>
-            <span className="text-[10px] text-gray-500 font-mono-data">Twilio Verified</span>
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              className="flex-1 px-3 py-2 text-xs rounded-lg bg-[#141924] border border-[#1E2638] text-white font-mono-data outline-none focus:border-[#25D366]"
-              placeholder="+91 93221 66721"
-            />
-            <button
-              onClick={() => setPhoneNumber("+919322166721")}
-              className="px-2.5 py-1.5 rounded-lg text-[10px] bg-[#25D366]/15 text-[#25D366] font-bold border border-[#25D366]/40 cursor-pointer"
-            >
-              My Phone
-            </button>
-          </div>
-        </div>
-
-        {/* Message Payload Preview */}
-        <div className="space-y-1.5">
-          <label className="text-xs text-gray-300 font-medium">Twilio WhatsApp Message Payload Preview</label>
-          <pre className="p-3 rounded-xl bg-[#05070B] border border-[#1E2638] text-[11px] font-mono-data text-emerald-400 whitespace-pre-wrap max-h-44 overflow-y-auto leading-relaxed scrollbar-none">
-            {messageText}
-          </pre>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-2 border-t border-[#1E2638]">
-          <button
-            onClick={handleSendTwilio}
-            disabled={isSending}
-            className="flex-1 py-2.5 rounded-xl font-bold text-xs bg-[#25D366] text-black hover:bg-[#1EBE5D] transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(37,211,102,0.3)]"
-          >
-            <Send size={14} />
-            {isSending ? "Transmitting via Twilio..." : dispatchStatus === "sent" ? "✅ Sent via Twilio API" : "Transmit Twilio WhatsApp SOS"}
-          </button>
-          <a
-            href={waUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-[#141924] text-white hover:bg-[#1E2638] transition-colors flex items-center gap-1.5 border border-[#1E2638]"
-          >
-            <MessageSquare size={14} className="text-[#25D366]" />
-            Open WhatsApp Web
-          </a>
-        </div>
-      </motion.div>
-    </div>
   );
 }
 
@@ -1611,15 +1185,96 @@ export default function DashboardPage() {
   const focusedCameraId = useDashboardStore((s) => s.focusedCameraId);
   const setFocusedCameraId = useDashboardStore((s) => s.setFocusedCameraId);
   const selectedAlertId = useDashboardStore((s) => s.selectedAlertId);
-  const [whatsAppModalAlert, setWhatsAppModalAlert] = useState<Alert | null>(null);
+  const alerts = useDashboardStore((s) => s.alerts);
+
+  const autoDispatchedIds = useRef<Set<string>>(new Set());
+  const [autoToast, setAutoToast] = useState<{
+    alert: Alert;
+    status: string;
+    sid?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    alerts.forEach(async (alert) => {
+      const isCritical =
+        alert.severity === "critical" ||
+        alert.eventType === "accident_collision" ||
+        alert.eventType === "stopped_vehicle_accident" ||
+        alert.eventType === "crowd_density" ||
+        alert.eventType === "wrong_way";
+
+      if (isCritical && !autoDispatchedIds.current.has(alert.id)) {
+        autoDispatchedIds.current.add(alert.id);
+        try {
+          const res = await fetch("/api/alerts/dispatch-whatsapp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              camera_id: alert.cameraId,
+              camera_name: alert.cameraName,
+              event_type: alert.eventType,
+              severity: alert.severity,
+              confidence: alert.confidence,
+              track_id: alert.trackId,
+              vehicle_details: alert.vehicleDetails,
+              detected_at: alert.detectedAt,
+              recipient_phone: "+919322166721",
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setAutoToast({
+              alert,
+              status: "delivered",
+              sid: data.sid,
+            });
+            setTimeout(() => setAutoToast(null), 8000);
+          }
+        } catch (err) {
+          console.error("Twilio Auto-Dispatch error:", err);
+        }
+      }
+    });
+  }, [alerts]);
 
   const focusedCamera = cameras.find((c) => c.id === focusedCameraId) || cameras[0];
   const companionCameras = cameras.filter((c) => c.id !== focusedCameraId);
 
   return (
     <>
+      <AnimatePresence>
+        {autoToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-4 right-4 z-50 flex items-center gap-3 p-3.5 rounded-xl border border-[#25D366]/50 bg-[#0B0F17]/95 shadow-[0_0_30px_rgba(37,211,102,0.3)] backdrop-blur-md text-white font-mono-data text-xs max-w-md"
+          >
+            <div className="w-8 h-8 rounded-lg bg-[#25D366]/20 border border-[#25D366]/40 flex items-center justify-center text-[#25D366] flex-shrink-0 animate-pulse">
+              <MessageSquare size={16} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-[#25D366] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span>🚨 Twilio WhatsApp SOS Auto-Dispatched</span>
+              </div>
+              <div className="text-white font-medium truncate mt-0.5">
+                {getEventLabel(autoToast.alert.eventType)} · {autoToast.alert.cameraName}
+              </div>
+              <div className="text-[10px] text-gray-400 mt-0.5">
+                Sent to: <span className="text-[#25D366] font-bold">+91 93221 66721</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setAutoToast(null)}
+              className="p-1 text-gray-500 hover:text-white rounded-lg"
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-96px)] min-h-[640px]">
-        {/* LEFT COLUMN: Surveillance Video Matrix / Map */}
         <div className="lg:w-[72%] xl:w-[74%] flex-shrink-0 flex flex-col h-full min-h-[440px]">
           {layoutMode === "grid" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 h-full overflow-y-auto">
@@ -1638,12 +1293,10 @@ export default function DashboardPage() {
 
           {layoutMode === "focus" && (
             <div className="flex flex-col xl:flex-row gap-3.5 h-full overflow-y-auto">
-              {/* Primary Focus Camera */}
               <div className="xl:w-[70%] h-full flex flex-col">
                 <CameraTile camera={focusedCamera} isFocused />
               </div>
 
-              {/* Sidebar Companion Feeds */}
               <div className="xl:w-[30%] flex flex-col gap-3 overflow-y-auto">
                 <div className="text-[11px] font-mono-data text-gray-400 uppercase tracking-wider px-1">
                   Auxiliary Node Feeds
@@ -1673,22 +1326,12 @@ export default function DashboardPage() {
 
         {/* RIGHT COLUMN: Live Alert Feed */}
         <div className="lg:w-[28%] xl:w-[26%] h-full flex flex-col min-h-[440px]">
-          <LiveAlertFeed onOpenWhatsApp={(alert) => setWhatsAppModalAlert(alert)} />
+          <LiveAlertFeed />
         </div>
       </div>
 
       {/* Slide-over Inspection Sheet */}
-      {selectedAlertId && (
-        <AlertDetailSheet onOpenWhatsApp={(alert) => setWhatsAppModalAlert(alert)} />
-      )}
-
-      {/* Twilio WhatsApp Emergency Dispatch Modal */}
-      {whatsAppModalAlert && (
-        <WhatsAppDispatchModal
-          alert={whatsAppModalAlert}
-          onClose={() => setWhatsAppModalAlert(null)}
-        />
-      )}
+      {selectedAlertId && <AlertDetailSheet />}
     </>
   );
 }
