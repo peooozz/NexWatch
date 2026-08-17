@@ -7,10 +7,9 @@ import {
   Zap,
   Activity,
   ArrowRight,
-  Eye,
-  Radio,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { Logo } from "@/components/logo";
 
 export default function LandingPage() {
   return (
@@ -38,34 +37,25 @@ export default function LandingPage() {
         <header className="sticky top-4 z-50 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
           <nav className="glass-navbar rounded-full px-4 sm:px-6 py-2.5 flex items-center justify-between transition-all duration-300 shadow-md">
             
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#4F46E5] to-[#7C3AED] flex items-center justify-center text-white shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-                <Shield size={18} className="text-white" />
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-base font-bold tracking-tight text-[#0F172A]">City</span>
-                <span className="text-base font-extrabold tracking-tight bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] bg-clip-text text-transparent">Eye</span>
-              </div>
+            {/* Aesthetic Logo */}
+            <Link href="/">
+              <Logo size="md" />
             </Link>
 
-            {/* Center Pill Nav Menu */}
-            <div className="hidden md:flex items-center gap-1 text-xs font-medium text-[#475569] bg-white/75 backdrop-blur-md p-1 rounded-full border border-white/90 shadow-xs">
-              <Link href="/dashboard" className="px-3.5 py-1.5 rounded-full text-[#0F172A] font-semibold bg-white shadow-xs flex items-center gap-1.5">
+            {/* Reliable Navbar Menu */}
+            <div className="hidden md:flex items-center gap-1 text-xs font-semibold text-[#475569] bg-white/75 backdrop-blur-md p-1 rounded-full border border-white/90 shadow-xs">
+              <Link href="/dashboard" className="px-4 py-1.5 rounded-full text-[#4F46E5] bg-white shadow-xs flex items-center gap-1.5 border border-slate-200/60">
                 <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                Live Feeds
+                Surveillance
               </Link>
-              <Link href="/dashboard/events" className="px-3.5 py-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/80 transition-all">
-                Incident Alerts
+              <Link href="/dashboard/events" className="px-4 py-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/80 transition-all">
+                Live Stream
               </Link>
-              <Link href="/dashboard/analytics" className="px-3.5 py-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/80 transition-all">
+              <Link href="/dashboard/analytics" className="px-4 py-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/80 transition-all">
                 Analytics
               </Link>
-              <Link href="/dashboard" className="px-3.5 py-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/80 transition-all">
-                Junctions
-              </Link>
-              <Link href="/dashboard/admin" className="px-3.5 py-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/80 transition-all">
-                System Health
+              <Link href="/dashboard/admin" className="px-4 py-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/80 transition-all">
+                Admin
               </Link>
             </div>
 
@@ -90,7 +80,7 @@ export default function LandingPage() {
         {/* ══ Hero Section ══════════════════════════════════════════════════ */}
         <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-12 max-w-5xl mx-auto text-center">
           
-          {/* Top Hackathon / System Tag */}
+          {/* Top Tag */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -98,9 +88,9 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-indigo-100 shadow-sm text-xs font-medium text-[#475569] mb-8"
           >
             <span className="w-2 h-2 rounded-full bg-[#6366F1]" />
-            <span className="font-bold text-[#6366F1] uppercase text-[10px] tracking-wider">Hackathon Prototype</span>
+            <span className="font-bold text-[#6366F1] uppercase text-[10px] tracking-wider">AI Surveillance Network</span>
             <span className="text-slate-300">|</span>
-            <span className="font-mono-data text-[11px] text-[#334155]">Nagpur Municipal AI CCTV Network</span>
+            <span className="font-mono-data text-[11px] text-[#334155]">Nagpur Smart City</span>
           </motion.div>
 
           {/* Main Title with Floating Badges */}
@@ -209,11 +199,11 @@ export default function LandingPage() {
         {/* ══ Minimal Frosted Footer ════════════════════════════════════════ */}
         <footer className="w-full py-5 text-center text-xs text-[#475569] border-t border-white/60 bg-white/65 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 font-mono-data">
-            <div>© 2026 CityEye · Nagpur Municipal Corporation (NMC) Traffic AI</div>
+            <div>© 2026 CityEye · Traffic AI Network</div>
             <div className="flex items-center gap-3">
-              <span className="text-emerald-600 font-semibold">● 4 RTSP Edge Nodes Active</span>
+              <span className="text-emerald-600 font-semibold">● 4 RTSP Nodes Live</span>
               <span>·</span>
-              <span>Twilio WhatsApp SOS Connected</span>
+              <span>Twilio WhatsApp SOS Active</span>
             </div>
           </div>
         </footer>

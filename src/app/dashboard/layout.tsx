@@ -17,13 +17,9 @@ import {
   Eye,
   Flame,
   Moon,
-  Cpu,
   Volume2,
   VolumeX,
-  Activity,
   ShieldCheck,
-  ShieldAlert,
-  Shield,
   Layers,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -44,7 +40,6 @@ function DashboardNav() {
   const [showVisionMenu, setShowVisionMenu] = useState(false);
   const [time, setTime] = useState("");
 
-  const onlineCams = cameras.filter((c) => c.status === "online").length;
   const criticalAlertsCount = alerts.filter(
     (a) => a.status === "new" && (a.severity === "critical" || a.severity === "high")
   ).length;
@@ -66,12 +61,10 @@ function DashboardNav() {
   }, []);
 
   const navLinks = [
-    { href: "/dashboard", label: "Live Surveillance" },
-    { href: "/dashboard/analytics", label: "Analytics & Intel" },
+    { href: "/dashboard", label: "Surveillance" },
     { href: "/dashboard/events", label: "Live Stream" },
-    ...(role === "Admin" || role === "Chief Dispatcher"
-      ? [{ href: "/dashboard/admin", label: "Admin & Nodes" }]
-      : []),
+    { href: "/dashboard/analytics", label: "Analytics" },
+    { href: "/dashboard/admin", label: "Admin" },
   ];
 
   const visionModes: {
@@ -111,38 +104,23 @@ function DashboardNav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl flex items-center justify-between px-3 md:px-6 h-16 transition-colors shadow-xs">
-      {/* LEFT: Branding & Node Info */}
+      {/* LEFT: Aesthetic Logo & Back to Home */}
       <div className="flex items-center gap-3 lg:gap-4">
         <Link
           href="/"
           className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900 transition-colors group"
         >
           <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-          <span className="hidden sm:inline font-medium">Exit</span>
+          <span className="hidden sm:inline font-medium">Home</span>
         </Link>
         <div className="w-px h-5 bg-slate-200" />
 
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#4F46E5] to-[#7C3AED] flex items-center justify-center text-white shadow-xs">
-            <Shield size={16} />
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-sm font-bold tracking-tight text-[#0F172A]">City</span>
-            <span className="text-sm font-extrabold tracking-tight bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] bg-clip-text text-transparent">Eye</span>
-          </div>
-
-          <div className="hidden xl:flex flex-col ml-2 pl-3 border-l border-slate-200">
-            <span className="text-[10px] font-mono-data uppercase tracking-wider font-bold text-[#6366F1]">
-              HQ-NAGPUR // GRID-01
-            </span>
-            <span className="text-[9px] font-mono-data text-slate-500">
-              YOLOv11x + ByteTrack + Twilio
-            </span>
-          </div>
-        </div>
+        <Link href="/">
+          <Logo size="sm" />
+        </Link>
       </div>
 
-      {/* CENTER: Main Navigation Tabs */}
+      {/* CENTER: Reliable Clean Navigation Tabs */}
       <nav className="hidden md:flex items-center gap-1 p-1 rounded-full bg-slate-100/80 border border-slate-200/80 shadow-inner">
         {navLinks.map((link) => {
           const active = pathname === link.href;
@@ -150,7 +128,7 @@ function DashboardNav() {
             <Link
               key={link.href}
               href={link.href}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all relative flex items-center ${
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all relative flex items-center ${
                 active
                   ? "bg-white text-[#4F46E5] shadow-xs border border-slate-200/60"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
@@ -170,7 +148,7 @@ function DashboardNav() {
         })}
       </nav>
 
-      {/* RIGHT: Telemetry, Layout Modes, Vision Shaders & Role Switch */}
+      {/* RIGHT: Layout Modes, Vision Shaders & Role Switch */}
       <div className="flex items-center gap-2 md:gap-3">
         {/* Layout Switcher (only visible on dashboard view) */}
         {pathname === "/dashboard" && (
@@ -267,12 +245,12 @@ function DashboardNav() {
               ? "bg-white border-slate-200 text-[#4F46E5]"
               : "bg-slate-100 border-slate-200 text-slate-400"
           }`}
-          title={soundAlerts ? "Sound Alerts Active (Siren On)" : "Sound Alerts Muted"}
+          title={soundAlerts ? "Sound Alerts Active" : "Sound Alerts Muted"}
         >
           {soundAlerts ? <Volume2 size={13} /> : <VolumeX size={13} />}
         </button>
 
-        {/* Live Clock Telemetry */}
+        {/* Live Clock */}
         <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-[11px] font-mono-data text-slate-700">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span suppressHydrationWarning>{time || "LIVE"}</span>
@@ -323,7 +301,6 @@ function DashboardNav() {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  // Initialize simulated WebSocket telemetry bus for realistic traffic feeds
   useSimulatedSocket();
 
   return (
