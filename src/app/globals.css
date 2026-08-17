@@ -70,6 +70,10 @@ body {
   filter: none;
 }
 
+.vision-cv {
+  filter: none;
+}
+
 .vision-thermal {
   filter: invert(0.85) hue-rotate(185deg) saturate(320%) contrast(150%) brightness(1.1);
 }
@@ -79,7 +83,7 @@ body {
 }
 
 .vision-wireframe {
-  filter: invert(1) grayscale(100%) contrast(300%) brightness(0.9);
+  filter: none;
 }
 
 /* ══ Landing Page Glass Effects ══════════════════════════════════════ */

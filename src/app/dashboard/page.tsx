@@ -80,11 +80,18 @@ function timeAgo(iso: string): string {
   return `${hrs}h ago`;
 }
 
-const CAMERA_VIDEOS: Record<string, string> = {
-  "CAM-001": "/videos/cam1.mp4",
-  "CAM-002": "/videos/cam2.mp4",
-  "CAM-003": "/videos/cam3.mp4",
-  "CAM-004": "/videos/cam4.mp4",
+const CAMERA_TRACKED_VIDEOS: Record<string, string> = {
+  "CAM-001": "/videos/cam1_tracked.mp4",
+  "CAM-002": "/videos/cam2_tracked.mp4",
+  "CAM-003": "/videos/cam3_tracked.mp4",
+  "CAM-004": "/videos/cam4_tracked.mp4",
+};
+
+const CAMERA_RAW_VIDEOS: Record<string, string> = {
+  "CAM-001": "/videos/cam1_clean.mp4",
+  "CAM-002": "/videos/cam2_clean.mp4",
+  "CAM-003": "/videos/cam3_clean.mp4",
+  "CAM-004": "/videos/cam4_clean.mp4",
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -113,7 +120,13 @@ function CameraTile({
     (a) => a.cameraId === camera.id && a.status === "new"
   );
 
-  const videoSource = camera.streamUrl || CAMERA_VIDEOS[camera.id] || "/videos/cam1.mp4";
+  // Computer Vision is active if visionMode is "cv" (or legacy "wireframe") AND showOverlays is true
+  const isCvActive = (visionMode === "cv" || visionMode === "wireframe") && showOverlays;
+
+  const videoSource = isCvActive
+    ? (CAMERA_TRACKED_VIDEOS[camera.id] || "/videos/cam1_tracked.mp4")
+    : (CAMERA_RAW_VIDEOS[camera.id] || "/videos/cam1_clean.mp4");
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -176,7 +189,8 @@ function CameraTile({
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {activeAlert && (
-            <span className="text-[9px] font-mono-data px-1.5 py-0.5 rounded font-bold bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/40 animate-live-pulse">
+            <span className="text-[9px] font-mono-data px-1.5 py-0.5 rounded font-bold bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/40 animate-live-pulse flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-ping" />
               ALERT DETECTED
             </span>
           )}
@@ -186,11 +200,11 @@ function CameraTile({
         </div>
       </div>
 
-      {/* Viewport with Shaders & Dynamic AI HUD */}
+      {/* Viewport with Shaders & Real YOLO AI Tracker */}
       <div
         className={`relative aspect-video bg-black overflow-hidden flex-1 cursor-crosshair vision-${visionMode}`}
       >
-        {/* HTML5 Infinite Looping Video Stream */}
+        {/* HTML5 Video Stream with Real Frame-by-Frame YOLO ByteTrack Annotations */}
         <video
           ref={videoRef}
           key={videoSource}
@@ -218,54 +232,80 @@ function CameraTile({
             strokeWidth="1.5"
           />
 
-          {showOverlays && (
-            <>
-              {/* Center PTZ reticle */}
-              <circle
-                cx="320"
-                cy="180"
-                r="18"
-                fill="none"
-                stroke="rgba(0, 229, 255, 0.25)"
+          {/* Active Incident Alert Tactical Top HUD Banner */}
+          {activeAlert && (
+            <g className="animate-pulse">
+              <rect
+                x="170"
+                y="14"
+                width="300"
+                height="22"
+                fill="rgba(255, 59, 48, 0.9)"
+                stroke="#FF3B30"
                 strokeWidth="1"
+                rx="4"
               />
-              <line x1="300" y1="180" x2="340" y2="180" stroke="rgba(0, 229, 255, 0.4)" strokeWidth="1" />
-              <line x1="320" y1="160" x2="320" y2="200" stroke="rgba(0, 229, 255, 0.4)" strokeWidth="1" />
-
-              {/* Camera Live OSD Info Bar */}
-              <rect x="16" y="322" width="608" height="22" fill="rgba(7, 9, 14, 0.75)" rx="3" />
+              <circle cx="184" cy="25" r="4" fill="#FFFFFF" />
               <text
-                x="26"
-                y="337"
-                fill="#00E5FF"
-                fontSize="9"
+                x="320"
+                y="29"
+                textAnchor="middle"
+                fill="#FFFFFF"
+                fontSize="9.5"
                 fontFamily="JetBrains Mono, monospace"
-                fontWeight="500"
+                fontWeight="bold"
+                letterSpacing="0.5"
               >
-                {camera.name.toUpperCase()} | {camera.resolution} | {camera.lensType} | BEARING: {camera.bearing}°
+                ⚠ INCIDENT DETECTED // {activeAlert.eventType.toUpperCase().replace("_", " ")}
               </text>
-              <text
-                x="614"
-                y="337"
-                textAnchor="end"
-                fill="white"
-                fontSize="9"
-                fontFamily="JetBrains Mono, monospace"
-              >
-                {time}.{msTime}
-              </text>
-            </>
+            </g>
           )}
+
+          {/* Center PTZ reticle */}
+          <circle
+            cx="320"
+            cy="180"
+            r="16"
+            fill="none"
+            stroke="rgba(0, 229, 255, 0.25)"
+            strokeWidth="1"
+          />
+          <line x1="305" y1="180" x2="335" y2="180" stroke="rgba(0, 229, 255, 0.4)" strokeWidth="1" />
+          <line x1="320" y1="165" x2="320" y2="195" stroke="rgba(0, 229, 255, 0.4)" strokeWidth="1" />
+
+          {/* Camera Live OSD Info Bar */}
+          <rect x="16" y="322" width="608" height="22" fill="rgba(7, 9, 14, 0.75)" rx="3" />
+          <text
+            x="26"
+            y="337"
+            fill="#00E5FF"
+            fontSize="9"
+            fontFamily="JetBrains Mono, monospace"
+            fontWeight="500"
+          >
+            {camera.name.toUpperCase()} | {camera.resolution} | {camera.lensType} | BEARING: {camera.bearing}°
+          </text>
+          <text
+            x="614"
+            y="337"
+            textAnchor="end"
+            fill="white"
+            fontSize="9"
+            fontFamily="JetBrains Mono, monospace"
+          >
+            {time}.{msTime}
+          </text>
         </svg>
+
 
         {/* Hover Quick Action Overlay */}
         <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-[#07090E]/85 p-1 rounded-lg border border-[#1E2638] backdrop-blur-md z-20">
           <button
             onClick={() => setShowOverlays(!showOverlays)}
             className={`p-1.5 rounded text-xs transition-colors cursor-pointer ${
-              showOverlays ? "text-[#00E5FF] bg-[#0091FF]/20" : "text-gray-400 hover:text-white"
+              isCvActive ? "text-[#00E5FF] bg-[#0091FF]/20" : "text-gray-400 hover:text-white"
             }`}
-            title="Toggle AI Bounding Boxes"
+            title={isCvActive ? "Computer Vision AI Active (Click to Hide Boxes)" : "Clean Normal Feed (Click to Show AI Boxes)"}
           >
             <Layers size={12} />
           </button>

@@ -1,0 +1,16 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonPlatform": "Windows",
+  "pythonVersion": "3.12",
+  "pythonPath": ".venv\\python.exe",
+  "extraPaths": [
+    ".",
+    "scripts",
+    "backend",
+    "backend/vehicle_counter",
+    "backend/vehicle_counter/src",
+    ".venv/Lib/site-packages"
+  ],
+  "reportMissingImports": "none"
+}

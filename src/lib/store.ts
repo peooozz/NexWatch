@@ -107,7 +107,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   layoutMode: "grid",
   setLayoutMode: (layoutMode) => set({ layoutMode }),
 
-  visionMode: "optical",
+  visionMode: "cv",
   setVisionMode: (visionMode) => set({ visionMode }),
 
   focusedCameraId: cameras[0]?.id || "CAM-001",

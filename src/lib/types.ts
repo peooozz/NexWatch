@@ -1,6 +1,6 @@
 export type CameraStatus = "online" | "offline" | "degraded";
 
-export type VisionMode = "optical" | "thermal" | "night" | "wireframe";
+export type VisionMode = "cv" | "optical" | "thermal" | "night" | "wireframe";
 export type LayoutMode = "grid" | "focus" | "map";
 
 export type Camera = {

@@ -73,14 +73,40 @@ function DashboardNav() {
       : []),
   ];
 
-  const visionModes: { mode: VisionMode; label: string; icon: React.ElementType }[] = [
-    { mode: "optical", label: "Optical (RGB)", icon: Eye },
-    { mode: "thermal", label: "FLIR Thermal", icon: Flame },
-    { mode: "night", label: "Phosphor NVG", icon: Moon },
-    { mode: "wireframe", label: "Edge AI CV", icon: Layers },
+  const visionModes: {
+    mode: VisionMode;
+    label: string;
+    description: string;
+    icon: React.ElementType;
+  }[] = [
+    {
+      mode: "cv",
+      label: "Computer Vision",
+      description: "YOLO AI Detection & Bounding Boxes",
+      icon: Layers,
+    },
+    {
+      mode: "optical",
+      label: "Optical (Normal Video)",
+      description: "Clean Feed (All Boxes Removed)",
+      icon: Eye,
+    },
+    {
+      mode: "thermal",
+      label: "FLIR Thermal",
+      description: "Infrared Thermal Heat Spectrum",
+      icon: Flame,
+    },
+    {
+      mode: "night",
+      label: "Phosphor NVG",
+      description: "Military Night Vision Filter",
+      icon: Moon,
+    },
   ];
 
-  const CurrentVisionIcon = visionModes.find((v) => v.mode === visionMode)?.icon || Eye;
+  const currentVision = visionModes.find((v) => v.mode === visionMode) || visionModes[0];
+  const CurrentVisionIcon = currentVision.icon;
 
   return (
     <header
@@ -187,29 +213,30 @@ function DashboardNav() {
         <div className="relative">
           <button
             onClick={() => setShowVisionMenu(!showVisionMenu)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono-data transition-all cursor-pointer border"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono-data transition-all cursor-pointer border shadow-sm"
             style={{
-              background: visionMode === "optical" ? "var(--bg-surface-raised)" : "rgba(0,229,255,0.12)",
-              borderColor: visionMode === "optical" ? "var(--border-subtle)" : "rgba(0,229,255,0.4)",
-              color: visionMode === "optical" ? "var(--text-secondary)" : "#00E5FF",
+              background: visionMode === "cv" ? "rgba(0, 229, 255, 0.15)" : "var(--bg-surface-raised)",
+              borderColor: visionMode === "cv" ? "rgba(0, 229, 255, 0.5)" : "var(--border-subtle)",
+              color: visionMode === "cv" ? "#00E5FF" : "var(--text-primary)",
             }}
-            title="Switch Vision Filter Shader"
+            title="Switch Vision Filter & Computer Vision AI"
           >
-            <CurrentVisionIcon size={12} />
-            <span className="hidden lg:inline capitalize">{visionMode}</span>
-            <ChevronDown size={10} />
+            <CurrentVisionIcon size={13} className={visionMode === "cv" ? "text-[#00E5FF]" : "text-gray-400"} />
+            <span className="hidden sm:inline font-medium">{currentVision.label}</span>
+            <ChevronDown size={11} className="text-gray-400" />
           </button>
 
           {showVisionMenu && (
             <div
-              className="absolute right-0 mt-1 rounded-xl p-1.5 min-w-[170px] z-50 shadow-2xl border"
+              className="absolute right-0 mt-1.5 rounded-xl p-1.5 min-w-[240px] z-50 shadow-2xl border"
               style={{
                 background: "var(--bg-surface-high)",
                 borderColor: "var(--border-subtle)",
               }}
             >
-              <div className="px-2 py-1 text-[10px] uppercase font-mono-data text-gray-400 font-semibold border-b border-[#1E2638] mb-1">
-                Sensor Spectrum
+              <div className="px-2.5 py-1 text-[10px] uppercase font-mono-data text-gray-400 font-semibold border-b border-[#1E2638] mb-1 flex items-center justify-between">
+                <span>Sensor Spectrum & AI</span>
+                <span className="text-[9px] text-[#00E5FF]">YOLOv11</span>
               </div>
               {visionModes.map((v) => {
                 const Icon = v.icon;
@@ -221,14 +248,21 @@ function DashboardNav() {
                       setVisionMode(v.mode);
                       setShowVisionMenu(false);
                     }}
-                    className="flex items-center gap-2 w-full text-left px-2.5 py-2 rounded-lg text-xs cursor-pointer transition-colors"
+                    className="flex items-start gap-2.5 w-full text-left px-2.5 py-2 rounded-lg text-xs cursor-pointer transition-all mb-0.5"
                     style={{
-                      background: active ? "rgba(0, 145, 255, 0.2)" : "transparent",
-                      color: active ? "#00E5FF" : "var(--text-secondary)",
+                      background: active ? "rgba(0, 145, 255, 0.22)" : "transparent",
+                      border: active ? "1px solid rgba(0, 229, 255, 0.35)" : "1px solid transparent",
                     }}
                   >
-                    <Icon size={13} />
-                    <span>{v.label}</span>
+                    <Icon size={14} className={`mt-0.5 flex-shrink-0 ${active ? "text-[#00E5FF]" : "text-gray-400"}`} />
+                    <div className="flex flex-col min-w-0">
+                      <span className={`font-medium text-xs ${active ? "text-[#00E5FF]" : "text-white"}`}>
+                        {v.label}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-mono-data truncate">
+                        {v.description}
+                      </span>
+                    </div>
                   </button>
                 );
               })}
