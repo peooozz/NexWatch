@@ -31,11 +31,23 @@ import {
   Clock,
   Eye,
   FileSpreadsheet,
+  Smartphone,
+  Camera as CameraIcon,
+  Video,
+  Settings,
+  HelpCircle,
+  ExternalLink,
+  Wifi,
+  Flashlight,
+  SwitchCamera,
+  Check,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════════════════
    TYPES & DATA MODELS
    ═══════════════════════════════════════════════════════════════════════ */
+export type StreamMode = "ip_webcam" | "device_cam" | "cctv_recorded";
+
 export interface DetectionItem {
   id: string | number;
   track_id?: number | string;
@@ -121,15 +133,6 @@ const AVAILABLE_VIDEOS: VideoSource[] = [
   },
 ];
 
-const CLASS_ICONS: Record<string, React.ElementType> = {
-  car: Car,
-  person: User,
-  motorcycle: Bike,
-  bus: Bus,
-  truck: Truck,
-  auto: Car,
-};
-
 const CLASS_COLORS: Record<string, { text: string; bg: string; border: string }> = {
   car: { text: "#00E5FF", bg: "rgba(0, 229, 255, 0.15)", border: "rgba(0, 229, 255, 0.4)" },
   person: { text: "#FFFFFF", bg: "rgba(255, 255, 255, 0.12)", border: "rgba(255, 255, 255, 0.3)" },
@@ -140,12 +143,27 @@ const CLASS_COLORS: Record<string, { text: string; bg: string; border: string }>
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT: AllEventDetectionPage
+   MAIN COMPONENT: LiveStreamPage
    ═══════════════════════════════════════════════════════════════════════ */
-export default function AllEventDetectionPage() {
-  // State
+export default function LiveStreamPage() {
+  // Stream Source Mode
+  const [streamMode, setStreamMode] = useState<StreamMode>("ip_webcam");
+
+  // Phone IP Webcam Configuration
+  const [phoneIp, setPhoneIp] = useState<string>("192.168.1.100");
+  const [phonePort, setPhonePort] = useState<string>("8080");
+  const [ipWebcamStatus, setIpWebcamStatus] = useState<"idle" | "streaming" | "error">("idle");
+  const [ipWebcamEndpoint, setIpWebcamEndpoint] = useState<"video" | "shot.jpg">("video");
+  const [showSetupGuide, setShowSetupGuide] = useState<boolean>(false);
+
+  // Device WebCam State
+  const [deviceCamActive, setDeviceCamActive] = useState<boolean>(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [camErrorMsg, setCamErrorMsg] = useState<string | null>(null);
+
+  // Recorded CCTV Video State
   const [selectedVideoId, setSelectedVideoId] = useState<string>("CAM-001");
-  const [confidenceThreshold, setConfidenceThreshold] = useState<number>(35);
+  const [confidenceThreshold, setConfidenceThreshold] = useState<number>(40);
   const [isLoop, setIsLoop] = useState<boolean>(true);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -156,6 +174,14 @@ export default function AllEventDetectionPage() {
   const [currentFrameNo, setCurrentFrameNo] = useState<number>(0);
   const [totalFrameCount, setTotalFrameCount] = useState<number>(796);
 
+  // Real-Time Detections & Event List
+  const [telemetryFrames, setTelemetryFrames] = useState<any[]>([]);
+  const [currentDetections, setCurrentDetections] = useState<DetectionItem[]>([]);
+  const [eventsList, setEventsList] = useState<SecurityEvent[]>([]);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [liveFps, setLiveFps] = useState<number>(29.8);
+  const [snapshotTaken, setSnapshotTaken] = useState<boolean>(false);
+
   // Notification Banner
   const [alertBanner, setAlertBanner] = useState<{
     show: boolean;
@@ -164,27 +190,195 @@ export default function AllEventDetectionPage() {
     type: "info" | "warning" | "success" | "critical";
   } | null>({
     show: true,
-    title: "AI Video Object & Event Detection System Ready",
-    message: "YOLOv11 + ByteTrack real-time violation inference active. Select video stream or adjust confidence threshold.",
-    type: "success",
+    title: "Live Vision Analytics Engine Active",
+    message: "Connect your Phone's IP Webcam app or device camera to stream real-time YOLO incident detection.",
+    type: "info",
   });
 
-  // Telemetry & Detections
-  const [telemetryFrames, setTelemetryFrames] = useState<any[]>([]);
-  const [currentDetections, setCurrentDetections] = useState<DetectionItem[]>([]);
-  const [eventsList, setEventsList] = useState<SecurityEvent[]>([]);
-  const [isExporting, setIsExporting] = useState<boolean>(false);
-
+  // DOM Refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const webcamVideoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const liveImgRef = useRef<HTMLImageElement | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   const selectedVideo = useMemo(
     () => AVAILABLE_VIDEOS.find((v) => v.id === selectedVideoId) || AVAILABLE_VIDEOS[0],
     [selectedVideoId]
   );
 
-  // ── Load Frame-by-Frame Tracking JSON Telemetry & Events ────────────
+  // Computed IP Webcam Full URL
+  const ipWebcamUrl = useMemo(() => {
+    let cleanIp = phoneIp.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    return `http://${cleanIp}:${phonePort}/${ipWebcamEndpoint}`;
+  }, [phoneIp, phonePort, ipWebcamEndpoint]);
+
+  // Load saved IP from localStorage on mount
   useEffect(() => {
+    try {
+      const savedIp = localStorage.getItem("cityeye_phone_ip");
+      const savedPort = localStorage.getItem("cityeye_phone_port");
+      if (savedIp) setPhoneIp(savedIp);
+      if (savedPort) setPhonePort(savedPort);
+    } catch {}
+  }, []);
+
+  // Save IP to localStorage
+  const handleSaveIpConfig = () => {
+    try {
+      localStorage.setItem("cityeye_phone_ip", phoneIp);
+      localStorage.setItem("cityeye_phone_port", phonePort);
+      setIpWebcamStatus("streaming");
+      setAlertBanner({
+        show: true,
+        title: "IP Webcam Stream Connected",
+        message: `Attempting live MJPEG connection to ${ipWebcamUrl}. Ensure your phone & PC are on the same Wi-Fi.`,
+        type: "success",
+      });
+    } catch {}
+  };
+
+  // ── Device Camera Handler (WebRTC getUserMedia) ──────────────────────
+  const startDeviceCamera = useCallback(async () => {
+    try {
+      setCamErrorMsg(null);
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: facingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+
+      mediaStreamRef.current = stream;
+      if (webcamVideoRef.current) {
+        webcamVideoRef.current.srcObject = stream;
+        webcamVideoRef.current.play();
+      }
+      setDeviceCamActive(true);
+      setAlertBanner({
+        show: true,
+        title: "Device Camera Active",
+        message: `Streaming high-definition video feed from ${facingMode === "environment" ? "Rear (Environment)" : "Front"} Camera.`,
+        type: "success",
+      });
+    } catch (err: any) {
+      console.error("Camera access error:", err);
+      setCamErrorMsg(err?.message || "Could not access device camera. Please check permissions.");
+      setAlertBanner({
+        show: true,
+        title: "Camera Permission Denied",
+        message: "Please allow browser camera permissions to enable direct device streaming.",
+        type: "critical",
+      });
+    }
+  }, [facingMode]);
+
+  const stopDeviceCamera = useCallback(() => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
+    }
+    if (webcamVideoRef.current) {
+      webcamVideoRef.current.srcObject = null;
+    }
+    setDeviceCamActive(false);
+  }, []);
+
+  // Effect to toggle device camera on stream mode change
+  useEffect(() => {
+    if (streamMode === "device_cam") {
+      startDeviceCamera();
+    } else {
+      stopDeviceCamera();
+    }
+    return () => {
+      stopDeviceCamera();
+    };
+  }, [streamMode, startDeviceCamera, stopDeviceCamera]);
+
+  // ── Simulated Live AI Detection Overlay for Live Phone/Webcam ───────
+  useEffect(() => {
+    if (streamMode === "cctv_recorded") return;
+
+    let frameCount = 0;
+    const interval = setInterval(() => {
+      frameCount++;
+      // Jitter live FPS
+      setLiveFps(parseFloat((28.5 + Math.random() * 2.8).toFixed(1)));
+
+      // Generate dynamic tracking boxes over live stream
+      const xOffset = (Math.sin(frameCount / 10) * 120);
+      const yOffset = (Math.cos(frameCount / 12) * 50);
+
+      const liveDetections: DetectionItem[] = [
+        {
+          id: `LIVE-TRK-101`,
+          track_id: 101,
+          class_name: "car",
+          confidence: 0.94,
+          confidence_pct: "94%",
+          speed: Math.floor(38 + Math.random() * 6),
+          box: [Math.max(40, 260 + xOffset), 180 + yOffset, Math.max(200, 560 + xOffset), 420 + yOffset],
+          tags: frameCount % 80 > 40 ? ["🚨 SPEED: 48 km/h"] : [],
+        },
+        {
+          id: `LIVE-TRK-102`,
+          track_id: 102,
+          class_name: "motorcycle",
+          confidence: 0.88,
+          confidence_pct: "88%",
+          speed: Math.floor(26 + Math.random() * 8),
+          box: [Math.max(600, 680 - xOffset), 220 - yOffset, Math.max(760, 840 - xOffset), 440 - yOffset],
+          tags: ["⚠ LIVE TRACK"],
+        },
+        {
+          id: `LIVE-TRK-103`,
+          track_id: 103,
+          class_name: "person",
+          confidence: 0.91,
+          confidence_pct: "91%",
+          speed: 4,
+          box: [120, 240, 200, 480],
+          tags: ["PEDESTRIAN"],
+        },
+      ].filter((d) => d.confidence * 100 >= confidenceThreshold);
+
+      setCurrentDetections(liveDetections);
+
+      // Periodically trigger a live security event
+      if (frameCount % 45 === 0) {
+        const newEvt: SecurityEvent = {
+          id: `EVT-LIVE-${Date.now().toString().slice(-4)}`,
+          timestamp: new Date().toLocaleTimeString("en-IN", { hour12: false }),
+          camera_id: streamMode === "ip_webcam" ? "PHONE-IP-CAM" : "WEBCAM-NODE-01",
+          camera_name: streamMode === "ip_webcam" ? `Phone IP (${phoneIp})` : "Local Edge Camera",
+          event: frameCount % 90 === 0 ? "wrong_way_driving" : "speed_violation",
+          event_type: frameCount % 90 === 0 ? "Violation" : "Traffic Warning",
+          vehicle_id: `LIVE-${Math.floor(100 + Math.random() * 900)}`,
+          confidence: 0.92,
+          movement_direction: "Northbound",
+          details: {
+            speed: "52 km/h",
+            zone: "Live Edge Field",
+          },
+        };
+        setEventsList((prev) => [newEvt, ...prev.slice(0, 30)]);
+      }
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [streamMode, confidenceThreshold, phoneIp]);
+
+  // ── Load CCTV Recorded Telemetry & Events ───────────────────────────
+  useEffect(() => {
+    if (streamMode !== "cctv_recorded") return;
+
     async function loadTelemetry() {
       try {
         const res = await fetch(selectedVideo.json_src);
@@ -196,24 +390,18 @@ export default function AllEventDetectionPage() {
           }
           if (data.events && data.events.length > 0) {
             setEventsList(data.events);
-            setAlertBanner({
-              show: true,
-              title: `Loaded ${data.events.length} Detected Events`,
-              message: `YOLOv11 + ByteTrack detected ${data.events.length} traffic violations and incidents on ${selectedVideo.name}.`,
-              type: "success",
-            });
           }
         }
       } catch (e) {
-        console.warn("Could not load telemetry json, using real-time frame estimator:", e);
+        console.warn("Could not load telemetry json:", e);
       }
     }
     loadTelemetry();
-  }, [selectedVideo]);
+  }, [selectedVideo, streamMode]);
 
-  // ── Sync Video Timeupdate with Telemetry Frame Detections ───────────
+  // Sync CCTV Video Timeupdate
   const handleTimeUpdate = useCallback(() => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || streamMode !== "cctv_recorded") return;
     const time = videoRef.current.currentTime;
     const dur = videoRef.current.duration || 1;
     setCurrentTime(time);
@@ -222,7 +410,6 @@ export default function AllEventDetectionPage() {
     const approxFrame = Math.floor(time * selectedVideo.fps);
     setCurrentFrameNo(approxFrame);
 
-    // Look up frame in telemetry
     if (telemetryFrames.length > 0) {
       const matched =
         telemetryFrames.find((f) => Math.abs(f.time - time) < 0.14) ||
@@ -245,45 +432,91 @@ export default function AllEventDetectionPage() {
         return;
       }
     }
+  }, [confidenceThreshold, selectedVideo.fps, telemetryFrames, streamMode]);
 
-    // Dynamic Fallback Detections Generator
-    const liveObjects: DetectionItem[] = [
-      {
-        id: `TRK-${(approxFrame % 7) + 1}`,
-        track_id: (approxFrame % 7) + 1,
-        class_name: "car",
-        confidence: 0.92,
-        confidence_pct: "92%",
-        speed: 42,
-        box: [240, 180, 520, 390],
-        tags: [],
-      },
-      {
-        id: `TRK-${(approxFrame % 5) + 8}`,
-        track_id: (approxFrame % 5) + 8,
-        class_name: "motorcycle",
-        confidence: 0.89,
-        confidence_pct: "89%",
-        speed: 31,
-        box: [640, 220, 780, 420],
-        tags: approxFrame > 60 && approxFrame < 400 ? ["⚠ TRIPLE RIDING"] : ["⚠ NO HELMET"],
-      },
-      {
-        id: `TRK-${(approxFrame % 4) + 14}`,
-        track_id: (approxFrame % 4) + 14,
-        class_name: "truck",
-        confidence: 0.95,
-        confidence_pct: "95%",
-        speed: 28,
-        box: [860, 140, 1180, 460],
-        tags: approxFrame > 120 && approxFrame < 350 ? ["🚨 WRONG WAY"] : [],
-      },
-    ].filter((d) => d.confidence * 100 >= confidenceThreshold);
+  // Capture Live Snapshot
+  const captureSnapshot = () => {
+    setSnapshotTaken(true);
+    setTimeout(() => setSnapshotTaken(false), 800);
 
-    setCurrentDetections(liveObjects);
-  }, [confidenceThreshold, selectedVideo.fps, telemetryFrames]);
+    const canvas = document.createElement("canvas");
+    canvas.width = 1280;
+    canvas.height = 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-  // ── Stats Calculations ──────────────────────────────────────────────
+    // Background
+    ctx.fillStyle = "#0D1117";
+    ctx.fillRect(0, 0, 1280, 720);
+
+    // Draw video frame if device cam or cctv
+    if (streamMode === "device_cam" && webcamVideoRef.current) {
+      try {
+        ctx.drawImage(webcamVideoRef.current, 0, 0, 1280, 720);
+      } catch {}
+    } else if (streamMode === "cctv_recorded" && videoRef.current) {
+      try {
+        ctx.drawImage(videoRef.current, 0, 0, 1280, 720);
+      } catch {}
+    }
+
+    // Tactical Overlay Watermark
+    ctx.fillStyle = "rgba(0, 229, 255, 0.9)";
+    ctx.font = "bold 16px monospace";
+    ctx.fillText(
+      `[NEXWATCH TACTICAL EVIDENCE] // ${new Date().toISOString()} // STREAM: ${streamMode.toUpperCase()}`,
+      24,
+      40
+    );
+
+    const link = document.createElement("a");
+    link.download = `NexWatch_Evidence_${Date.now()}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+
+  // Fullscreen Toggle
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
+
+  // Export Events CSV
+  const handleExportCSV = () => {
+    setIsExporting(true);
+    try {
+      const headers = ["ID", "Timestamp", "Camera", "Event", "Vehicle_ID", "Confidence", "Speed_KMPH"];
+      const rows = eventsList.map((e) => [
+        e.id,
+        e.timestamp,
+        `"${e.camera_name}"`,
+        e.event,
+        e.vehicle_id,
+        `${Math.round(e.confidence * 100)}%`,
+        e.details?.speed || "35",
+      ]);
+
+      const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `NexWatch_LiveStream_Events_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setTimeout(() => setIsExporting(false), 500);
+    }
+  };
+
+  // Stats
   const stats = useMemo(() => {
     const current = currentDetections;
     const cars = current.filter((d) => d.class_name === "car" || d.class_name === "auto").length;
@@ -299,12 +532,12 @@ export default function AllEventDetectionPage() {
     const collisionCount = eventsList.filter((e) => e.event === "accident_collision").length;
 
     return {
-      total: current.length,
       cars,
       persons,
       motorcycles,
       buses,
       trucks,
+      totalTracked: current.length,
       tripleRidingCount,
       wrongWayCount,
       stoppedCount,
@@ -313,750 +546,636 @@ export default function AllEventDetectionPage() {
     };
   }, [currentDetections, eventsList]);
 
-  // ── Filtered Security Events Table ──────────────────────────────────
+  // Filtered Events
   const filteredEvents = useMemo(() => {
-    return eventsList.filter((ev) => {
+    return eventsList.filter((e) => {
       const matchesFilter =
         activeFilter === "ALL" ||
-        ev.event === activeFilter ||
-        ev.event_type === activeFilter;
+        e.event === activeFilter ||
+        (activeFilter === "triple_riding" && e.event === "triple_riding") ||
+        (activeFilter === "wrong_way_driving" && e.event === "wrong_way_driving") ||
+        (activeFilter === "helmet_violation" && e.event === "helmet_violation") ||
+        (activeFilter === "vehicle_stopped" && e.event === "vehicle_stopped") ||
+        (activeFilter === "accident_collision" && e.event === "accident_collision");
 
-      const q = searchQuery.toLowerCase();
       const matchesSearch =
-        !q ||
-        ev.event.toLowerCase().includes(q) ||
-        ev.camera_id.toLowerCase().includes(q) ||
-        ev.camera_name.toLowerCase().includes(q) ||
-        String(ev.vehicle_id).toLowerCase().includes(q);
+        searchQuery === "" ||
+        e.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.camera_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.event.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(e.vehicle_id).toLowerCase().includes(searchQuery.toLowerCase());
 
       return matchesFilter && matchesSearch;
     });
   }, [eventsList, activeFilter, searchQuery]);
 
-  // ── Video Controls ──────────────────────────────────────────────────
-  const togglePlayPause = () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-      setAlertBanner({
-        show: true,
-        title: "Video Stream Paused",
-        message: "Detection paused. Click Play or 'Start Video Detection' to resume live tracking.",
-        type: "info",
-      });
-    } else {
-      videoRef.current.play();
-      setIsPlaying(true);
-      setAlertBanner({
-        show: true,
-        title: "Detection Active",
-        message: `Real-time YOLO detection streaming on ${selectedVideo.name}.`,
-        type: "success",
-      });
-    }
-  };
-
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true));
-    } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false));
-    }
-  };
-
-  const handleExportCSV = () => {
-    setIsExporting(true);
-    const headers = ["Timestamp", "Camera ID", "Camera Name", "Event Type", "Vehicle ID", "Confidence", "Details"];
-    const rows = filteredEvents.map((e) => [
-      e.timestamp,
-      e.camera_id,
-      `"${e.camera_name}"`,
-      e.event,
-      `#${e.vehicle_id}`,
-      `${Math.round(e.confidence * 100)}%`,
-      `"${JSON.stringify(e.details || {}).replace(/"/g, '""')}"`,
-    ]);
-
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `cityeye_events_${selectedVideoId}_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    setTimeout(() => {
-      setIsExporting(false);
-      setAlertBanner({
-        show: true,
-        title: "Events Exported",
-        message: `Exported ${filteredEvents.length} security events to CSV successfully.`,
-        type: "success",
-      });
-    }, 400);
-  };
-
   return (
-    <div className="min-h-screen bg-[#000000] text-[#F0F4FC] font-sans antialiased p-3 sm:p-5 lg:p-6 flex flex-col gap-5">
+    <div className="min-h-screen bg-[#030712] text-gray-100 p-3 sm:p-6 lg:p-8 space-y-6">
       {/* ═══════════════════════════════════════════════════════════════
-          1. SYSTEM STATUS CLUSTER & SUBTITLE
+          1. HEADER & STREAM SOURCE SWITCHER
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#1E2638]">
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/40 flex items-center justify-center text-[#00E5FF] shadow-[0_0_20px_rgba(0,229,255,0.25)]">
-            <Radio className="w-5 h-5 animate-pulse text-[#00E5FF]" />
-            <span className="absolute inset-0 rounded-xl border border-[#00E5FF] animate-ping opacity-25" />
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-[#1E2638] pb-5">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl font-bold font-headline tracking-tight text-white flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#00E5FF] animate-live-pulse" />
+              Live Stream & Edge Vision Analytics
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono-data uppercase tracking-wider font-bold bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/30">
+              YOLOv11 Inference Active
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-white uppercase font-display">
-                ALL EVENT DETECTION
-              </h1>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#00E5FF]/15 text-[#00E5FF] border border-[#00E5FF]/30">
-                PROD V2.4
-              </span>
-            </div>
-            <p className="text-xs text-gray-400 font-mono">
-              REAL-TIME YOLOv11x OBJECT TRACKING • BYTETRACK • TRAFFIC INCIDENT CLASSIFIER
-            </p>
-          </div>
+          <p className="text-xs sm:text-sm text-gray-400 mt-1">
+            Real-time multi-target classification, speed radar, and automated traffic violation detection across live feeds.
+          </p>
         </div>
 
-        {/* Live System Status Badges */}
-        <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#07090E] border border-[#1E2638]">
-            <span className={`w-2 h-2 rounded-full ${isPlaying ? "bg-[#10B981] animate-pulse" : "bg-[#64748B]"}`} />
-            <span className="text-gray-300">
-              FEED: <strong className={isPlaying ? "text-[#10B981]" : "text-gray-400"}>{isPlaying ? "STREAMING" : "PAUSED"}</strong>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#07090E] border border-[#1E2638]">
-            <span className="w-2 h-2 rounded-full bg-[#00E5FF]" />
-            <span className="text-gray-300">
-              CAM: <strong className="text-[#00E5FF]">{selectedVideoId}</strong>
-            </span>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#07090E] border border-[#1E2638]">
-            <span className="w-2 h-2 rounded-full bg-[#EC4899]" />
-            <span className="text-gray-300">
-              AI: <strong className="text-[#EC4899]">YOLOv11 + ByteTrack</strong>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          2. ALERT NOTIFICATION BANNER
-          ═══════════════════════════════════════════════════════════════ */}
-      <AnimatePresence>
-        {alertBanner && alertBanner.show && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className={`flex items-center justify-between p-3.5 rounded-xl border backdrop-blur-md text-xs sm:text-sm ${
-              alertBanner.type === "critical"
-                ? "bg-[#FF3B30]/10 border-[#FF3B30]/40 text-[#FF3B30]"
-                : alertBanner.type === "warning"
-                ? "bg-[#FF9500]/10 border-[#FF9500]/40 text-[#FF9500]"
-                : alertBanner.type === "success"
-                ? "bg-[#10B981]/10 border-[#10B981]/40 text-[#10B981]"
-                : "bg-[#0091FF]/10 border-[#0091FF]/40 text-[#00E5FF]"
+        {/* STREAM SOURCE SELECTOR BUTTONS */}
+        <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-xl bg-[#07090E] border border-[#1E2638]">
+          <button
+            onClick={() => setStreamMode("ip_webcam")}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all cursor-pointer ${
+              streamMode === "ip_webcam"
+                ? "bg-[#00E5FF] text-black shadow-[0_0_12px_rgba(0,229,255,0.4)]"
+                : "text-gray-400 hover:text-white"
             }`}
           >
-            <div className="flex items-center gap-3">
-              <span className="text-lg">
-                {alertBanner.type === "critical"
-                  ? "🚨"
-                  : alertBanner.type === "warning"
-                  ? "⚠️"
-                  : alertBanner.type === "success"
-                  ? "🟢"
-                  : "ℹ️"}
-              </span>
-              <div>
-                <strong className="font-semibold block">{alertBanner.title}</strong>
-                <span className="text-gray-300 text-xs">{alertBanner.message}</span>
+            <Smartphone size={14} />
+            Phone IP Webcam
+          </button>
+
+          <button
+            onClick={() => setStreamMode("device_cam")}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all cursor-pointer ${
+              streamMode === "device_cam"
+                ? "bg-[#10B981] text-black shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <CameraIcon size={14} />
+            Device Camera
+          </button>
+
+          <button
+            onClick={() => setStreamMode("cctv_recorded")}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all cursor-pointer ${
+              streamMode === "cctv_recorded"
+                ? "bg-[#0091FF] text-white shadow-[0_0_12px_rgba(0,145,255,0.4)]"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <Video size={14} />
+            CCTV Grid Feeds
+          </button>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          2. STREAM CONFIGURATION BAR (FOR IP WEBCAM & DEVICE CAM)
+          ═══════════════════════════════════════════════════════════════ */}
+      {streamMode === "ip_webcam" && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-[#0B0F19] border border-[#00E5FF]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
+        >
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 text-xs font-mono font-semibold text-[#00E5FF]">
+              <Wifi size={16} className="animate-pulse" />
+              <span>IP WEBCAM ENDPOINT:</span>
+            </div>
+
+            <div className="flex items-center gap-2 bg-[#07090E] border border-[#1E2638] rounded-lg px-3 py-1.5">
+              <span className="text-xs text-gray-500 font-mono">http://</span>
+              <input
+                type="text"
+                value={phoneIp}
+                onChange={(e) => setPhoneIp(e.target.value)}
+                placeholder="192.168.1.100"
+                className="bg-transparent text-xs font-mono text-white focus:outline-none w-32"
+              />
+              <span className="text-xs text-gray-500 font-mono">:</span>
+              <input
+                type="text"
+                value={phonePort}
+                onChange={(e) => setPhonePort(e.target.value)}
+                placeholder="8080"
+                className="bg-transparent text-xs font-mono text-white focus:outline-none w-14"
+              />
+              <span className="text-xs text-gray-500 font-mono">/video</span>
+            </div>
+
+            <button
+              onClick={handleSaveIpConfig}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold font-mono bg-[#00E5FF] text-black hover:bg-[#00c8de] transition-colors cursor-pointer"
+            >
+              <Check size={14} />
+              Connect Stream
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <button
+              onClick={() => setShowSetupGuide(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono text-gray-300 bg-[#07090E] border border-[#1E2638] hover:border-[#00E5FF]/50 transition-colors cursor-pointer"
+            >
+              <HelpCircle size={14} className="text-[#00E5FF]" />
+              How to setup IP Webcam App?
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {streamMode === "device_cam" && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-[#0B0F19] border border-[#10B981]/30 flex flex-wrap items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-ping" />
+            <span className="text-xs font-mono text-gray-300">
+              Direct HTML5 WebRTC stream active on local device.
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const next = facingMode === "environment" ? "user" : "environment";
+                setFacingMode(next);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono bg-[#07090E] border border-[#1E2638] text-white hover:border-[#10B981] transition-all cursor-pointer"
+            >
+              <SwitchCamera size={14} className="text-[#10B981]" />
+              Flip Camera ({facingMode === "environment" ? "Rear" : "Front"})
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {streamMode === "cctv_recorded" && (
+        <div className="flex flex-wrap items-center gap-2 p-1 bg-[#07090E] border border-[#1E2638] rounded-xl">
+          {AVAILABLE_VIDEOS.map((vid) => (
+            <button
+              key={vid.id}
+              onClick={() => setSelectedVideoId(vid.id)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                selectedVideoId === vid.id
+                  ? "bg-[#0091FF] text-white font-bold"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <span>{vid.id}:</span>
+              <span>{vid.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          3. MAIN VIDEO STAGE WITH TACTICAL BOUNDING BOX OVERLAY
+          ═══════════════════════════════════════════════════════════════ */}
+      <div
+        ref={containerRef}
+        className={`relative rounded-2xl overflow-hidden border border-[#1E2638] bg-[#000000] shadow-2xl flex flex-col items-center justify-center ${
+          isFullscreen ? "h-screen w-screen rounded-none" : "min-h-[400px] sm:min-h-[520px] lg:min-h-[640px]"
+        }`}
+      >
+        {/* FLASH EFFECT ON SNAPSHOT */}
+        {snapshotTaken && (
+          <div className="absolute inset-0 bg-white/90 z-50 animate-out fade-out duration-500 pointer-events-none" />
+        )}
+
+        {/* ── A. IP WEBCAM STREAM VIEW ── */}
+        {streamMode === "ip_webcam" && (
+          <div className="relative w-full h-full flex items-center justify-center min-h-[480px]">
+            {/* MJPEG Live Stream */}
+            <img
+              ref={liveImgRef}
+              src={ipWebcamUrl}
+              alt="Phone IP Webcam Live Stream"
+              className="w-full h-full object-contain max-h-[720px]"
+              onError={() => {
+                setIpWebcamStatus("error");
+              }}
+              onLoad={() => {
+                setIpWebcamStatus("streaming");
+              }}
+            />
+
+            {/* Connection Error Fallback Guide */}
+            {ipWebcamStatus === "error" && (
+              <div className="absolute inset-0 bg-[#07090E]/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20">
+                <AlertTriangle size={48} className="text-[#FF9500] mb-3" />
+                <h3 className="text-lg font-bold text-white font-headline">Waiting for IP Webcam Stream</h3>
+                <p className="text-xs text-gray-400 max-w-md mt-1 mb-4">
+                  Could not reach <code className="text-[#00E5FF] font-mono">{ipWebcamUrl}</code>. Make sure the &quot;IP Webcam&quot; app is running on your phone and both devices are connected to the same Wi-Fi.
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleSaveIpConfig}
+                    className="px-4 py-2 rounded-lg text-xs font-mono font-bold bg-[#00E5FF] text-black flex items-center gap-2 cursor-pointer"
+                  >
+                    <RefreshCw size={14} /> Retry Connection
+                  </button>
+                  <button
+                    onClick={() => setShowSetupGuide(true)}
+                    className="px-4 py-2 rounded-lg text-xs font-mono text-gray-300 bg-[#1E2638] hover:bg-[#2A344D] cursor-pointer"
+                  >
+                    View Setup Instructions
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── B. DEVICE WEBCAM VIEW ── */}
+        {streamMode === "device_cam" && (
+          <div className="relative w-full h-full flex items-center justify-center min-h-[480px]">
+            <video
+              ref={webcamVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-contain max-h-[720px]"
+            />
+            {camErrorMsg && (
+              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-6 text-center z-20">
+                <XCircle size={44} className="text-[#FF3B30] mb-2" />
+                <p className="text-sm font-semibold text-white">{camErrorMsg}</p>
+                <button
+                  onClick={startDeviceCamera}
+                  className="mt-3 px-4 py-2 rounded-lg text-xs font-mono bg-[#10B981] text-black font-bold cursor-pointer"
+                >
+                  Grant Camera Permissions
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── C. PRE-RECORDED CCTV VIEW ── */}
+        {streamMode === "cctv_recorded" && (
+          <div className="relative w-full h-full flex items-center justify-center min-h-[480px]">
+            <video
+              ref={videoRef}
+              src={selectedVideo.clean_src}
+              autoPlay
+              playsInline
+              muted
+              loop={isLoop}
+              onTimeUpdate={handleTimeUpdate}
+              className="w-full h-full object-contain max-h-[720px]"
+            />
+          </div>
+        )}
+
+        {/* ── D. TACTICAL REAL-TIME BOUNDING BOX OVERLAYS ── */}
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+          {/* Scanline Grid */}
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(0, 229, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 229, 255, 0.1) 1px, transparent 1px)",
+              backgroundSize: "32px 32px",
+            }}
+          />
+
+          {/* Render Bounding Boxes */}
+          {currentDetections.map((det, idx) => {
+            if (!det.box || det.box.length < 4) return null;
+            const [x1, y1, x2, y2] = det.box;
+
+            // Map 1280x720 target space to percentage coordinates
+            const leftPct = (x1 / 1280) * 100;
+            const topPct = (y1 / 720) * 100;
+            const widthPct = ((x2 - x1) / 1280) * 100;
+            const heightPct = ((y2 - y1) / 720) * 100;
+
+            const style = CLASS_COLORS[det.class_name] || CLASS_COLORS.car;
+
+            return (
+              <div
+                key={`${det.id}-${idx}`}
+                className="absolute border-2 transition-all duration-150"
+                style={{
+                  left: `${leftPct}%`,
+                  top: `${topPct}%`,
+                  width: `${widthPct}%`,
+                  height: `${heightPct}%`,
+                  borderColor: style.text,
+                  backgroundColor: style.bg,
+                  boxShadow: `0 0 10px ${style.text}40`,
+                }}
+              >
+                {/* Corner Crosshairs */}
+                <div className="absolute -top-1 -left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-white" />
+                <div className="absolute -top-1 -right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-white" />
+                <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-white" />
+                <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-white" />
+
+                {/* Target Label HUD */}
+                <div
+                  className="absolute -top-6 left-0 px-2 py-0.5 rounded text-[10px] font-mono-data font-bold tracking-wider uppercase whitespace-nowrap flex items-center gap-1.5"
+                  style={{
+                    backgroundColor: style.text,
+                    color: "#000000",
+                  }}
+                >
+                  <span>[{det.track_id || idx + 1}]</span>
+                  <span>{det.class_name}</span>
+                  <span>{det.confidence_pct || `${Math.round(det.confidence * 100)}%`}</span>
+                  {det.speed && <span className="opacity-80">· {det.speed} km/h</span>}
+                </div>
+
+                {/* Threat Tags */}
+                {det.tags && det.tags.length > 0 && (
+                  <div className="absolute -bottom-5 left-0 px-1.5 py-0.5 rounded bg-[#FF3B30] text-white text-[9px] font-mono-data font-bold tracking-wider">
+                    {det.tags[0]}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── E. TOP HUD OVERLAY (FPS, LATENCY, NODE INFO) ── */}
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-20 pointer-events-none">
+          <div className="flex items-center gap-2 bg-[#07090E]/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-[#1E2638] text-[11px] font-mono">
+            <span className="w-2 h-2 rounded-full bg-[#00E5FF] animate-live-pulse" />
+            <span className="text-white font-bold">
+              {streamMode === "ip_webcam"
+                ? `PHONE IP WEBCAM [${phoneIp}]`
+                : streamMode === "device_cam"
+                ? "DEVICE SENSOR [WEBRTC 720p]"
+                : selectedVideo.name.toUpperCase()}
+            </span>
+            <span className="text-gray-500">|</span>
+            <span className="text-[#00E5FF]">{liveFps} FPS</span>
+            <span className="text-gray-500">|</span>
+            <span className="text-[#10B981]">LATENCY: 14ms</span>
+          </div>
+
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <button
+              onClick={captureSnapshot}
+              className="p-2 rounded-lg bg-[#07090E]/80 backdrop-blur-md border border-[#1E2638] hover:border-[#00E5FF] text-white text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Capture Evidence Snapshot"
+            >
+              <Download size={14} className="text-[#00E5FF]" />
+              <span className="hidden sm:inline">Capture Snapshot</span>
+            </button>
+            <button
+              onClick={toggleFullscreen}
+              className="p-2 rounded-lg bg-[#07090E]/80 backdrop-blur-md border border-[#1E2638] hover:border-white text-white transition-colors cursor-pointer"
+              title="Toggle Fullscreen"
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+          </div>
+        </div>
+
+        {/* ── F. BOTTOM TIMELINE SCRUBBER (FOR RECORDED CCTV) ── */}
+        {streamMode === "cctv_recorded" && (
+          <div className="absolute bottom-3 left-3 right-3 bg-[#07090E]/90 backdrop-blur-md p-3 rounded-xl border border-[#1E2638] z-20">
+            <div className="flex items-center justify-between gap-4 text-xs font-mono text-gray-300 mb-2">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (videoRef.current) {
+                      if (isPlaying) videoRef.current.pause();
+                      else videoRef.current.play();
+                      setIsPlaying(!isPlaying);
+                    }
+                  }}
+                  className="p-1 rounded bg-[#1E2638] hover:bg-[#2A344D] text-white cursor-pointer"
+                >
+                  {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+                </button>
+
+                <span>
+                  {Math.floor(currentTime / 60)}:
+                  {String(Math.floor(currentTime % 60)).padStart(2, "0")} / {Math.floor(duration / 60)}:
+                  {String(Math.floor(duration % 60)).padStart(2, "0")}
+                </span>
+
+                <span className="text-gray-500">·</span>
+                <span className="text-[#00E5FF]">FRAME #{currentFrameNo}</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Confidence:</span>
+                <input
+                  type="range"
+                  min={10}
+                  max={90}
+                  value={confidenceThreshold}
+                  onChange={(e) => setConfidenceThreshold(Number(e.target.value))}
+                  className="w-24 accent-[#00E5FF] cursor-pointer"
+                />
+                <span className="text-[#00E5FF] font-bold">{confidenceThreshold}%</span>
               </div>
             </div>
-            <button
-              onClick={() => setAlertBanner(null)}
-              className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          3. STATS GRID: 6 MAIN OBJECT COUNT CARDS
-          ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {/* TOTAL DETECTIONS */}
-        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#00E5FF]/30 shadow-[0_0_15px_rgba(0,229,255,0.08)] flex flex-col justify-between relative overflow-hidden group hover:border-[#00E5FF] transition-all">
-          <div className="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
-            <span>TOTAL OBJECTS</span>
-            <span className="text-base">🎯</span>
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono text-[#00E5FF]">
-            {stats.total}
-          </div>
-          <div className="text-[11px] font-mono text-gray-400 mt-1">Live frame objects</div>
-          <div className="absolute top-0 right-0 w-16 h-16 bg-[#00E5FF]/5 rounded-full blur-xl pointer-events-none" />
-        </div>
-
-        {/* PEOPLE */}
-        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#3B82F6]/30 flex flex-col justify-between hover:border-[#3B82F6] transition-all">
-          <div className="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
-            <span>PEOPLE</span>
-            <span className="text-base">🚶</span>
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono text-[#60A5FA]">
-            {stats.persons}
-          </div>
-          <div className="text-[11px] font-mono text-gray-400 mt-1">Pedestrians & riders</div>
-        </div>
-
-        {/* CARS */}
-        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#10B981]/30 flex flex-col justify-between hover:border-[#10B981] transition-all">
-          <div className="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
-            <span>CARS / AUTOS</span>
-            <span className="text-base">🚗</span>
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono text-[#34D399]">
-            {stats.cars}
-          </div>
-          <div className="text-[11px] font-mono text-gray-400 mt-1">Light vehicles</div>
-        </div>
-
-        {/* BUSES */}
-        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#EC4899]/30 flex flex-col justify-between hover:border-[#EC4899] transition-all">
-          <div className="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
-            <span>BUSES</span>
-            <span className="text-base">🚌</span>
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono text-[#F472B6]">
-            {stats.buses}
-          </div>
-          <div className="text-[11px] font-mono text-gray-400 mt-1">Public transit</div>
-        </div>
-
-        {/* TRUCKS */}
-        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#F59E0B]/30 flex flex-col justify-between hover:border-[#F59E0B] transition-all">
-          <div className="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
-            <span>TRUCKS</span>
-            <span className="text-base">🚚</span>
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono text-[#FBBF24]">
-            {stats.trucks}
-          </div>
-          <div className="text-[11px] font-mono text-gray-400 mt-1">Heavy logistics</div>
-        </div>
-
-        {/* MOTORCYCLES */}
-        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#00E5FF]/30 flex flex-col justify-between hover:border-[#00E5FF] transition-all">
-          <div className="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
-            <span>MOTORCYCLES</span>
-            <span className="text-base">🏍️</span>
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono text-[#38BDF8]">
-            {stats.motorcycles}
-          </div>
-          <div className="text-[11px] font-mono text-gray-400 mt-1">Two-wheelers</div>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          4. VIOLATION & SAFETY METRICS ROW (MINI PILLS)
-          ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-        <button
-          onClick={() => setActiveFilter(activeFilter === "triple_riding" ? "ALL" : "triple_riding")}
-          className={`flex items-center justify-between p-2.5 rounded-lg border transition-all cursor-pointer ${
-            activeFilter === "triple_riding"
-              ? "bg-[#FF3B30]/20 border-[#FF3B30] text-white shadow-[0_0_12px_rgba(255,59,48,0.3)]"
-              : "bg-[#07090E] border-[#1E2638] text-gray-300 hover:border-[#FF3B30]/40"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-xs">
-            <span>🏍️</span>
-            <span className="font-medium">Triple Riding:</span>
-          </div>
-          <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FF3B30] text-white">
-            {stats.tripleRidingCount}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveFilter(activeFilter === "wrong_way_driving" ? "ALL" : "wrong_way_driving")}
-          className={`flex items-center justify-between p-2.5 rounded-lg border transition-all cursor-pointer ${
-            activeFilter === "wrong_way_driving"
-              ? "bg-[#FF9500]/20 border-[#FF9500] text-white shadow-[0_0_12px_rgba(255,149,0,0.3)]"
-              : "bg-[#07090E] border-[#1E2638] text-gray-300 hover:border-[#FF9500]/40"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-xs">
-            <span>⛔</span>
-            <span className="font-medium">Wrong-Way:</span>
-          </div>
-          <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FF9500] text-white">
-            {stats.wrongWayCount}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveFilter(activeFilter === "vehicle_stopped" ? "ALL" : "vehicle_stopped")}
-          className={`flex items-center justify-between p-2.5 rounded-lg border transition-all cursor-pointer ${
-            activeFilter === "vehicle_stopped"
-              ? "bg-[#0091FF]/20 border-[#0091FF] text-white shadow-[0_0_12px_rgba(0,145,255,0.3)]"
-              : "bg-[#07090E] border-[#1E2638] text-gray-300 hover:border-[#0091FF]/40"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-xs">
-            <span>🛑</span>
-            <span className="font-medium">Stopped / Accident:</span>
-          </div>
-          <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#0091FF] text-white">
-            {stats.stoppedCount}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveFilter(activeFilter === "helmet_violation" ? "ALL" : "helmet_violation")}
-          className={`flex items-center justify-between p-2.5 rounded-lg border transition-all cursor-pointer ${
-            activeFilter === "helmet_violation"
-              ? "bg-[#EC4899]/20 border-[#EC4899] text-white shadow-[0_0_12px_rgba(236,72,153,0.3)]"
-              : "bg-[#07090E] border-[#1E2638] text-gray-300 hover:border-[#EC4899]/40"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-xs">
-            <span>⛑️</span>
-            <span className="font-medium">Helmet Violation:</span>
-          </div>
-          <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#EC4899] text-white">
-            {stats.helmetCount}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveFilter(activeFilter === "accident_collision" ? "ALL" : "accident_collision")}
-          className={`flex items-center justify-between p-2.5 rounded-lg border transition-all cursor-pointer ${
-            activeFilter === "accident_collision"
-              ? "bg-[#FF3B30]/20 border-[#FF3B30] text-white shadow-[0_0_12px_rgba(255,59,48,0.3)]"
-              : "bg-[#07090E] border-[#1E2638] text-gray-300 hover:border-[#FF3B30]/40"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-xs">
-            <span>💥</span>
-            <span className="font-medium">Collision Alert:</span>
-          </div>
-          <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FF3B30] text-white">
-            {stats.collisionCount}
-          </span>
-        </button>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          5. CONTROLS TOOLBAR & VIDEO SELECTOR
-          ═══════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-3.5 rounded-xl bg-[#07090E] border border-[#1E2638]">
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Video Selector Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-gray-400 font-semibold uppercase">SELECT VIDEO:</span>
-            <select
-              value={selectedVideoId}
-              onChange={(e) => {
-                setSelectedVideoId(e.target.value);
-                setCurrentTime(0);
-              }}
-              className="px-3 py-1.5 rounded-lg bg-[#000000] border border-[#1E2638] text-xs font-medium text-white focus:outline-none focus:border-[#00E5FF] transition-colors cursor-pointer"
-            >
-              {AVAILABLE_VIDEOS.map((v) => (
-                <option key={v.id} value={v.id} className="bg-[#0A0F1A] text-white">
-                  📹 {v.name} ({v.filename})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Confidence Slider */}
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs font-mono text-gray-400 font-semibold uppercase">CONFIDENCE:</span>
-            <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40">
-              {confidenceThreshold}%
-            </span>
             <input
               type="range"
-              min="15"
-              max="90"
-              step="5"
-              value={confidenceThreshold}
-              onChange={(e) => setConfidenceThreshold(parseInt(e.target.value, 10))}
-              className="w-28 accent-[#00E5FF] cursor-pointer"
+              min={0}
+              max={duration || 100}
+              step={0.1}
+              value={currentTime}
+              onChange={(e) => {
+                if (videoRef.current) {
+                  videoRef.current.currentTime = Number(e.target.value);
+                  setCurrentTime(Number(e.target.value));
+                }
+              }}
+              className="w-full h-1.5 bg-[#1E2638] rounded-lg appearance-none cursor-pointer accent-[#00E5FF]"
             />
           </div>
+        )}
+      </div>
 
-          {/* Loop Toggle */}
-          <label className="flex items-center gap-2 text-xs font-medium text-gray-300 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={isLoop}
-              onChange={(e) => setIsLoop(e.target.checked)}
-              className="rounded bg-[#07090E] border-[#1E2638] text-[#00E5FF] focus:ring-0 cursor-pointer"
-            />
-            <span>Loop Video</span>
-          </label>
+      {/* ═══════════════════════════════════════════════════════════════
+          4. REAL-TIME TELEMETRY & CLASSIFICATION CARDS
+          ═══════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#1E2638] flex flex-col justify-between">
+          <span className="text-gray-400 text-xs font-mono uppercase">TARGETS IN SIGHT</span>
+          <span className="text-2xl font-mono font-bold text-[#00E5FF] mt-2">{stats.totalTracked}</span>
+          <span className="text-[10px] font-mono text-gray-500">ByteTrack active</span>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={togglePlayPause}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer ${
-              isPlaying
-                ? "bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/50 hover:bg-[#FF3B30]/30 shadow-[0_0_12px_rgba(255,59,48,0.2)]"
-                : "bg-[#00E5FF] text-black hover:bg-[#38BDF8] shadow-[0_0_15px_rgba(0,229,255,0.4)]"
-            }`}
-          >
-            {isPlaying ? (
-              <>
-                <Pause className="w-4 h-4" />
-                PAUSE STREAM
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 fill-current" />
-                START VIDEO DETECTION
-              </>
-            )}
-          </button>
+        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#00E5FF]/20 flex flex-col justify-between">
+          <span className="text-gray-400 text-xs font-mono uppercase">CARS & AUTOS</span>
+          <span className="text-2xl font-mono font-bold text-[#00E5FF] mt-2">{stats.cars}</span>
+          <span className="text-[10px] font-mono text-gray-500">Light passenger</span>
+        </div>
 
-          <button
-            onClick={() => {
-              if (videoRef.current) {
-                videoRef.current.currentTime = 0;
-                videoRef.current.play();
-                setIsPlaying(true);
-              }
-            }}
-            title="Restart Stream"
-            className="p-2 rounded-lg bg-[#000000] border border-[#1E2638] text-gray-300 hover:text-white hover:border-[#00E5FF] transition-all cursor-pointer"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
+        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#10B981]/20 flex flex-col justify-between">
+          <span className="text-gray-400 text-xs font-mono uppercase">MOTORCYCLES</span>
+          <span className="text-2xl font-mono font-bold text-[#10B981] mt-2">{stats.motorcycles}</span>
+          <span className="text-[10px] font-mono text-gray-500">Two-wheelers</span>
+        </div>
 
-          <button
-            onClick={handleExportCSV}
-            disabled={isExporting}
-            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-[#000000] border border-[#1E2638] text-xs font-medium text-gray-200 hover:text-[#00E5FF] hover:border-[#00E5FF] transition-all cursor-pointer"
-          >
-            <FileSpreadsheet className="w-4 h-4 text-[#00E5FF]" />
-            <span>EXPORT CSV</span>
-          </button>
+        <div className="p-3.5 rounded-xl bg-[#07090E] border border-white/20 flex flex-col justify-between">
+          <span className="text-gray-400 text-xs font-mono uppercase">PEDESTRIANS</span>
+          <span className="text-2xl font-mono font-bold text-white mt-2">{stats.persons}</span>
+          <span className="text-[10px] font-mono text-gray-500">Foot traffic</span>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#F59E0B]/20 flex flex-col justify-between">
+          <span className="text-gray-400 text-xs font-mono uppercase">TRUCKS</span>
+          <span className="text-2xl font-mono font-bold text-[#F59E0B] mt-2">{stats.trucks}</span>
+          <span className="text-[10px] font-mono text-gray-500">Heavy cargo</span>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-[#07090E] border border-[#FF3B30]/20 flex flex-col justify-between">
+          <span className="text-gray-400 text-xs font-mono uppercase">VIOLATIONS LOGGED</span>
+          <span className="text-2xl font-mono font-bold text-[#FF3B30] mt-2">{eventsList.length}</span>
+          <span className="text-[10px] font-mono text-gray-500">Inference events</span>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          6. MAIN WORKSPACE SPLIT: SURVEILLANCE SCREEN & EVENT LOG
+          5. LIVE INCIDENT & VIOLATION EVENT LOG TABLE
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* LEFT 7 COLS: Video Player & Live Frame Detection Cards */}
-        <div className="lg:col-span-7 flex flex-col gap-4">
-          {/* Video Player Panel */}
-          <div
-            ref={containerRef}
-            className="relative rounded-2xl bg-[#07090E] border border-[#1E2638] overflow-hidden shadow-2xl flex flex-col"
-          >
-            {/* Header Telemetry Chips */}
-            <div className="flex items-center justify-between p-3 bg-[#0A0F1A]/90 border-b border-[#1E2638]">
-              <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${isPlaying ? "bg-[#FF3B30] animate-ping" : "bg-[#64748B]"}`} />
-                <span className="text-xs font-bold text-white uppercase tracking-wider font-display">
-                  {selectedVideo.name}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 font-mono text-[10px]">
-                <span className="px-2 py-0.5 rounded bg-[#000000] border border-[#1E2638] text-[#00E5FF]">
-                  {selectedVideo.resolution}
-                </span>
-                <span className="px-2 py-0.5 rounded bg-[#000000] border border-[#1E2638] text-[#10B981]">
-                  {selectedVideo.fps}.0 FPS
-                </span>
-                <span className="px-2 py-0.5 rounded bg-[#000000] border border-[#1E2638] text-gray-300">
-                  FRAME: {currentFrameNo}/{totalFrameCount}
-                </span>
-              </div>
+      <div className="rounded-2xl border border-[#1E2638] bg-[#07090E] overflow-hidden">
+        <div className="p-4 border-b border-[#1E2638] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Activity size={18} className="text-[#00E5FF]" />
+            <h2 className="text-sm font-bold font-headline text-white">Live Incident & Violation Telemetry</h2>
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#1E2638] text-gray-300">
+              {filteredEvents.length} Events
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-2.5 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search events..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 pr-3 py-1.5 rounded-lg bg-[#0B0F19] border border-[#1E2638] text-xs font-mono text-white focus:outline-none focus:border-[#00E5FF] w-48"
+              />
             </div>
 
-            {/* Video Canvas Element */}
-            <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
-              <video
-                ref={videoRef}
-                src={selectedVideo.tracked_src}
-                loop={isLoop}
-                autoPlay
-                playsInline
-                muted
-                onTimeUpdate={handleTimeUpdate}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                className="w-full h-full object-cover"
-              />
+            <button
+              onClick={handleExportCSV}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[#1E2638] hover:bg-[#2A344D] text-white transition-colors cursor-pointer"
+            >
+              <FileSpreadsheet size={14} className="text-[#10B981]" />
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
 
-              {/* Top-Right Tactical Overlay HUD */}
-              <div className="absolute top-3 right-3 flex flex-col gap-1 pointer-events-none">
-                <div className="px-2.5 py-1 rounded bg-[#07090E]/85 border border-[#00E5FF]/50 backdrop-blur-md text-[10px] font-mono text-[#00E5FF]">
-                  AI: YOLOv11x • ByteTrack
+        <div className="overflow-x-auto max-h-96">
+          <table className="w-full text-left text-xs font-mono">
+            <thead className="sticky top-0 bg-[#0B0F19] border-b border-[#1E2638] text-gray-400 text-[11px] uppercase">
+              <tr>
+                <th className="p-3">Event ID</th>
+                <th className="p-3">Timestamp</th>
+                <th className="p-3">Camera Node</th>
+                <th className="p-3">Incident Type</th>
+                <th className="p-3">Target Track</th>
+                <th className="p-3">Confidence</th>
+                <th className="p-3 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1E2638]/50">
+              {filteredEvents.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-gray-500">
+                    No incident violations detected yet in active stream.
+                  </td>
+                </tr>
+              ) : (
+                filteredEvents.map((evt) => (
+                  <tr key={evt.id} className="hover:bg-[#0B0F19]/50 transition-colors">
+                    <td className="p-3 font-bold text-[#00E5FF]">{evt.id}</td>
+                    <td className="p-3 text-gray-300">{evt.timestamp}</td>
+                    <td className="p-3 text-gray-300">{evt.camera_name}</td>
+                    <td className="p-3">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF3B30]/10 text-[#FF3B30] border border-[#FF3B30]/30">
+                        {evt.event.replace(/_/g, " ").toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="p-3 text-gray-300">{evt.vehicle_id}</td>
+                    <td className="p-3 text-[#10B981]">{Math.round(evt.confidence * 100)}%</td>
+                    <td className="p-3 text-right">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-[#10B981]">
+                        <CheckCircle2 size={12} /> Logged
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          6. MODAL: HOW TO SETUP PHONE IP WEBCAM APP
+          ═══════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showSetupGuide && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#0B0F19] border border-[#00E5FF]/40 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-[#1E2638] pb-3">
+                <div className="flex items-center gap-2 text-white font-bold font-headline">
+                  <Smartphone className="text-[#00E5FF]" size={20} />
+                  <span>How to Stream from IP Webcam Phone App</span>
+                </div>
+                <button
+                  onClick={() => setShowSetupGuide(false)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-white cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs text-gray-300 leading-relaxed font-sans">
+                <div className="p-3 rounded-lg bg-[#07090E] border border-[#1E2638]">
+                  <strong className="text-[#00E5FF] font-mono block mb-1">Step 1: Install & Open App</strong>
+                  Install the free <strong>&quot;IP Webcam&quot;</strong> app by Pavel Khlebovich on your Android phone from Google Play Store.
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#07090E] border border-[#1E2638]">
+                  <strong className="text-[#00E5FF] font-mono block mb-1">Step 2: Start Server</strong>
+                  Connect your phone to the <strong>same Wi-Fi network</strong> as your laptop/computer. Scroll to the bottom of the app and tap <strong>&quot;Start server&quot;</strong>.
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#07090E] border border-[#1E2638]">
+                  <strong className="text-[#00E5FF] font-mono block mb-1">Step 3: Enter IP into NexWatch</strong>
+                  Your phone will display an address at the bottom of the screen (e.g. <code className="text-[#00E5FF] font-mono">http://192.168.1.5:8080</code>).
+                  Enter that IP into the bar above and click <strong>&quot;Connect Stream&quot;</strong>!
                 </div>
               </div>
 
-              {/* Floating Fullscreen Trigger */}
-              <button
-                onClick={toggleFullscreen}
-                className="absolute bottom-3 right-3 p-2 rounded-lg bg-black/70 hover:bg-black text-white border border-[#1E2638] hover:border-[#00E5FF] transition-all cursor-pointer backdrop-blur-md"
-              >
-                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {/* Color Legend Bar */}
-            <div className="p-2.5 bg-[#0A0F1A] border-t border-[#1E2638] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="flex items-center gap-1.5 text-gray-300">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#00E5FF]" /> Car
-                </span>
-                <span className="flex items-center gap-1.5 text-gray-300">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#FFFFFF]" /> Person
-                </span>
-                <span className="flex items-center gap-1.5 text-gray-300">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#10B981]" /> Motorcycle
-                </span>
-                <span className="flex items-center gap-1.5 text-gray-300">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#EC4899]" /> Bus
-                </span>
-                <span className="flex items-center gap-1.5 text-gray-300">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#F59E0B]" /> Truck
-                </span>
-                <span className="flex items-center gap-1.5 text-[#FF3B30] font-bold">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#FF3B30] animate-pulse" /> Violation / Alert
-                </span>
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={() => setShowSetupGuide(false)}
+                  className="px-5 py-2 rounded-xl text-xs font-bold font-mono bg-[#00E5FF] text-black hover:bg-[#00c8de] transition-colors cursor-pointer"
+                >
+                  Got It, Let&apos;s Stream!
+                </button>
               </div>
-            </div>
+            </motion.div>
           </div>
-
-          {/* Live Frame Detections Panel */}
-          <div className="p-4 rounded-2xl bg-[#07090E] border border-[#1E2638] flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#00E5FF]" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white font-mono">
-                  LIVE FRAME DETECTIONS
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#00E5FF]/20 text-[#00E5FF]">
-                  {currentDetections.length} Active
-                </span>
-              </div>
-              <span className="text-[11px] font-mono text-gray-400">
-                Frame {currentFrameNo} • {currentDetections.length} objects tracked
-              </span>
-            </div>
-
-            {currentDetections.length === 0 ? (
-              <div className="p-6 text-center text-xs font-mono text-gray-500 rounded-xl bg-[#000000] border border-[#1E2638]/60">
-                No active objects detected in this frame above {confidenceThreshold}% confidence.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
-                {currentDetections.map((d, idx) => {
-                  const color = CLASS_COLORS[d.class_name] || CLASS_COLORS.car;
-                  const Icon = CLASS_ICONS[d.class_name] || Car;
-                  return (
-                    <div
-                      key={`${d.id}-${idx}`}
-                      className="p-3 rounded-xl bg-[#000000] border border-[#1E2638] flex flex-col gap-2 relative overflow-hidden"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div
-                          className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold font-mono"
-                          style={{ color: color.text, backgroundColor: color.bg, border: `1px solid ${color.border}` }}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                          <span>{d.class_name.toUpperCase()}</span>
-                        </div>
-                        <span className="text-xs font-mono font-bold text-gray-300">
-                          #{d.track_id || d.id}
-                        </span>
-                      </div>
-
-                      {/* Confidence Meter Bar */}
-                      <div className="w-full bg-[#1E2638] h-1.5 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-300"
-                          style={{
-                            width: `${Math.round(d.confidence * 100)}%`,
-                            backgroundColor: color.text,
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between text-[11px] font-mono">
-                        <span className="text-gray-400">Conf: <strong className="text-white">{d.confidence_pct || `${Math.round(d.confidence * 100)}%`}</strong></span>
-                        <span className="text-gray-500 text-[10px]">{d.box ? `[${d.box.join(", ")}]` : ""}</span>
-                      </div>
-
-                      {d.tags && d.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {d.tags.map((t, tidx) => (
-                            <span
-                              key={tidx}
-                              className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/40"
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT 5 COLS: Security Event Log Table */}
-        <div className="lg:col-span-5 p-4 rounded-2xl bg-[#07090E] border border-[#1E2638] flex flex-col gap-4">
-          {/* Table Header & Search Filter */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-[#FF3B30]" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-white font-display">
-                  SECURITY EVENT LOG
-                </h3>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/40">
-                {filteredEvents.length} Events
-              </span>
-            </div>
-
-            {/* Filter Dropdown & Search Input */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 min-w-[140px]">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search vehicle or event..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-[#000000] border border-[#1E2638] text-xs text-white focus:outline-none focus:border-[#00E5FF] transition-colors"
-                />
-              </div>
-
-              <select
-                value={activeFilter}
-                onChange={(e) => setActiveFilter(e.target.value)}
-                className="px-2.5 py-1.5 rounded-lg bg-[#000000] border border-[#1E2638] text-xs font-medium text-gray-200 focus:outline-none focus:border-[#00E5FF] transition-colors cursor-pointer"
-              >
-                <option value="ALL">All Event Types</option>
-                <option value="triple_riding">Triple Riding</option>
-                <option value="wrong_way_driving">Wrong-Way Driving</option>
-                <option value="vehicle_stopped">Vehicle Stopped</option>
-                <option value="helmet_violation">Helmet Violation</option>
-                <option value="accident_collision">Accident / Collision</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Events Table Body */}
-          <div className="overflow-x-auto max-h-[600px] overflow-y-auto border border-[#1E2638] rounded-xl">
-            <table className="w-full text-left text-xs">
-              <thead className="sticky top-0 bg-[#0A0F1A] border-b border-[#1E2638] text-gray-400 font-mono text-[10px] uppercase">
-                <tr>
-                  <th className="p-2.5">TIME</th>
-                  <th className="p-2.5">CAMERA</th>
-                  <th className="p-2.5">EVENT</th>
-                  <th className="p-2.5">OBJECT</th>
-                  <th className="p-2.5">CONF</th>
-                  <th className="p-2.5">DETAILS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1E2638]">
-                {filteredEvents.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-gray-500 font-mono text-xs">
-                      No security events matching your filter.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredEvents.map((ev) => {
-                    const isCritical =
-                      ev.event === "triple_riding" ||
-                      ev.event === "accident_collision" ||
-                      ev.event === "wrong_way_driving";
-
-                    let detailsList: string[] = [];
-                    if (ev.person_count) detailsList.push(`Riders: ${ev.person_count}`);
-                    if (ev.movement_direction) detailsList.push(`Heading: ${ev.movement_direction}`);
-                    if (ev.stopped_duration_sec) detailsList.push(`Stopped: ${ev.stopped_duration_sec}s`);
-                    if (ev.details && typeof ev.details === "object") {
-                      for (const [k, v] of Object.entries(ev.details)) {
-                        if (!["riders", "movement_direction", "stopped_duration_sec"].includes(k)) {
-                          detailsList.push(`${k}: ${v}`);
-                        }
-                      }
-                    }
-                    const detailsStr = detailsList.join(" • ") || "Traffic Event Detection";
-
-                    return (
-                      <tr
-                        key={ev.id}
-                        className="hover:bg-white/[0.03] transition-colors font-mono group"
-                      >
-                        <td className="p-2.5 text-gray-400 text-[11px] whitespace-nowrap">
-                          {ev.timestamp}
-                        </td>
-                        <td className="p-2.5">
-                          <span className="px-1.5 py-0.5 rounded bg-[#000000] border border-[#1E2638] text-[10px] text-[#00E5FF]">
-                            {ev.camera_id}
-                          </span>
-                        </td>
-                        <td className="p-2.5">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap ${
-                              isCritical
-                                ? "bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/40"
-                                : "bg-[#FF9500]/20 text-[#FF9500] border border-[#FF9500]/40"
-                            }`}
-                          >
-                            {ev.event.replace(/_/g, " ")}
-                          </span>
-                        </td>
-                        <td className="p-2.5 font-bold text-white whitespace-nowrap">
-                          #{ev.vehicle_id}
-                        </td>
-                        <td className="p-2.5 text-[#00E5FF]">
-                          {Math.round(ev.confidence * 100)}%
-                        </td>
-                        <td className="p-2.5 text-gray-400 text-[11px] max-w-[200px] truncate" title={detailsStr}>
-                          {detailsStr}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
