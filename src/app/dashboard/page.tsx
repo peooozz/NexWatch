@@ -949,7 +949,7 @@ function AlertCard({
 /* ═══════════════════════════════════════════════════════════════════════
    LIVE ALERT FEED PANEL
    ═══════════════════════════════════════════════════════════════════════ */
-function LiveAlertFeed() {
+function LiveAlertFeed({ onManualWhatsApp }: { onManualWhatsApp?: () => void }) {
   const alerts = useDashboardStore((s) => s.alerts);
   const alertFilter = useDashboardStore((s) => s.alertFilter);
   const setAlertFilter = useDashboardStore((s) => s.setAlertFilter);
@@ -991,15 +991,27 @@ function LiveAlertFeed() {
           )}
         </div>
 
-        {newAlertsCount > 0 && (
-          <button
-            onClick={acknowledgeAll}
-            className="flex items-center gap-1 text-[10px] font-mono-data font-bold text-[#4F46E5] hover:underline cursor-pointer"
-          >
-            <CheckCheck size={12} />
-            Ack All
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onManualWhatsApp && (
+            <button
+              onClick={onManualWhatsApp}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono-data font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all cursor-pointer shadow-2xs"
+              title="Send Immediate WhatsApp Alert to +91 93221 66721"
+            >
+              <MessageSquare size={11} className="text-emerald-600" />
+              <span>Send SOS</span>
+            </button>
+          )}
+          {newAlertsCount > 0 && (
+            <button
+              onClick={acknowledgeAll}
+              className="flex items-center gap-1 text-[10px] font-mono-data font-bold text-[#4F46E5] hover:underline cursor-pointer"
+            >
+              <CheckCheck size={12} />
+              Ack All
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter / Search Bar */}
@@ -1230,7 +1242,45 @@ export default function DashboardPage() {
       });
   }, [alerts]);
 
-  // Automated 10-Minute Recurring Critical SOS WhatsApp Routine
+  const triggerManualWhatsApp = async () => {
+    const criticals = alerts.filter(
+      (a) =>
+        a.severity === "critical" ||
+        a.eventType === "accident_collision" ||
+        a.eventType === "stopped_vehicle_accident"
+    );
+    const chosen = criticals[0] || alerts[0];
+    if (!chosen) return;
+
+    try {
+      const res = await fetch("/api/alerts/dispatch-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          camera_id: chosen.cameraId,
+          camera_name: chosen.cameraName,
+          event_type: chosen.eventType,
+          severity: "critical",
+          confidence: chosen.confidence || 0.99,
+          track_id: chosen.trackId,
+          vehicle_details: chosen.vehicleDetails,
+          detected_at: new Date().toISOString(),
+          recipient_phone: "+919322166721",
+        }),
+      });
+      const data = await res.json();
+      setAutoToast({
+        alert: chosen,
+        status: data.success ? "delivered" : "error",
+        sid: data.sid || (data.warning ? "SIMULATED / ENV MISSING" : undefined),
+      });
+      setTimeout(() => setAutoToast(null), 8000);
+    } catch (err) {
+      console.error("Manual WhatsApp dispatch error:", err);
+    }
+  };
+
+  // Automated 10-Minute Recurring Routine + Instant Mount Dispatch
   useEffect(() => {
     const sendPeriodicSOS = async () => {
       const criticals = alerts.filter(
@@ -1259,22 +1309,24 @@ export default function DashboardPage() {
           }),
         });
         const data = await res.json();
-        if (data.success) {
-          setAutoToast({
-            alert: chosen,
-            status: "delivered",
-            sid: data.sid,
-          });
-          setTimeout(() => setAutoToast(null), 8000);
-        }
+        setAutoToast({
+          alert: chosen,
+          status: data.success ? "delivered" : "error",
+          sid: data.sid || (data.warning ? "SIMULATED / ENV MISSING" : undefined),
+        });
+        setTimeout(() => setAutoToast(null), 8000);
       } catch (err) {
         console.error("10-min interval dispatch error:", err);
       }
     };
 
-    // Recurring 10 minutes interval (600,000 ms)
+    // Trigger on mount after 2.5s and every 10 minutes
+    const initialTimer = setTimeout(sendPeriodicSOS, 2500);
     const interval = setInterval(sendPeriodicSOS, 10 * 60 * 1000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
   }, [alerts]);
 
   const focusedCamera = cameras.find((c) => c.id === focusedCameraId) || cameras[0];
@@ -1288,27 +1340,31 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-3 p-3.5 rounded-xl border border-[#25D366]/50 bg-[#0B0F17]/95 shadow-[0_0_30px_rgba(37,211,102,0.3)] backdrop-blur-md text-white font-mono-data text-xs max-w-md"
+            className="fixed top-20 right-6 z-50 flex items-center gap-3.5 p-4 rounded-2xl border border-emerald-300 bg-white/95 shadow-2xl backdrop-blur-2xl text-slate-900 font-mono-data text-xs max-w-md"
           >
-            <div className="w-8 h-8 rounded-lg bg-[#25D366]/20 border border-[#25D366]/40 flex items-center justify-center text-[#25D366] flex-shrink-0 animate-pulse">
-              <MessageSquare size={16} />
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600 flex-shrink-0 animate-pulse shadow-xs">
+              <MessageSquare size={18} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] text-[#25D366] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <span>🚨 Twilio WhatsApp SOS Auto-Dispatched</span>
+              <div className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                <span>Twilio WhatsApp SOS Dispatched</span>
               </div>
-              <div className="text-white font-medium truncate mt-0.5">
+              <div className="text-slate-900 font-bold truncate mt-0.5 text-xs">
                 {getEventLabel(autoToast.alert.eventType)} · {autoToast.alert.cameraName}
               </div>
-              <div className="text-[10px] text-gray-400 mt-0.5">
-                Sent to: <span className="text-[#25D366] font-bold">+91 93221 66721</span>
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                Recipient: <span className="text-emerald-700 font-bold">+91 93221 66721</span>
+                {autoToast.sid && (
+                  <span className="ml-1 text-slate-400">({autoToast.sid.slice(0, 10)}...)</span>
+                )}
               </div>
             </div>
             <button
               onClick={() => setAutoToast(null)}
-              className="p-1 text-gray-500 hover:text-white rounded-lg"
+              className="p-1 text-slate-400 hover:text-slate-900 rounded-lg cursor-pointer"
             >
-              <X size={14} />
+              <X size={15} />
             </button>
           </motion.div>
         )}
@@ -1366,7 +1422,7 @@ export default function DashboardPage() {
 
         {/* RIGHT COLUMN: Live Alert Feed */}
         <div className="lg:w-[28%] xl:w-[26%] h-full flex flex-col min-h-[440px]">
-          <LiveAlertFeed />
+          <LiveAlertFeed onManualWhatsApp={triggerManualWhatsApp} />
         </div>
       </div>
 

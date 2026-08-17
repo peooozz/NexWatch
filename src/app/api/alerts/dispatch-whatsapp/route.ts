@@ -37,14 +37,14 @@ export async function POST(req: NextRequest) {
     const trackId = body.track_id || "TRK-301";
     const timeStr = new Date().toLocaleTimeString("en-IN", { hour12: false });
 
-    let header = "🚨 *NEXWATCH CRITICAL ACCIDENT SOS* 🚨";
+    let header = "🚨 *CITYEYE CRITICAL ACCIDENT SOS* 🚨";
     let action = "🚨 DISPATCH AMBULANCE / EMS & TRAFFIC POLICE IMMEDIATELY";
 
     if (eventType.includes("CROWD") || eventType.includes("DENSITY")) {
-      header = "👥 *NEXWATCH OVERCROWDING SURGE ALERT* 👥";
+      header = "👥 *CITYEYE OVERCROWDING SURGE ALERT* 👥";
       action = "👥 DISPATCH RAPID ACTION FORCE (RAF) / CROWD CONTROL";
     } else if (eventType.includes("WRONG")) {
-      header = "⛔ *NEXWATCH CONTRAFLOW / WRONG-WAY ALERT* ⛔";
+      header = "⛔ *CITYEYE CONTRAFLOW / WRONG-WAY ALERT* ⛔";
       action = "⛔ INTERCEPT CONTRAFLOW VEHICLE / DIVERT TRAFFIC";
     }
 
@@ -59,15 +59,15 @@ export async function POST(req: NextRequest) {
 ⚡ *Action Mandate:* ${action}
 ━━━━━━━━━━━━━━━━━━━━━
 🔗 *Live CCTV Feeds:* https://cityeye-frontend.onrender.com/dashboard
-📡 *CityEye Command Center | Twilio Auto-Dispatch*`;
+📡 *CityEye Command Center | Twilio Emergency Dispatch*`;
 
     if (!accountSid || !authToken) {
       console.warn(
-        "Twilio credentials missing in Next.js environment (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN)"
+        "Twilio credentials (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN) not set in environment."
       );
       return NextResponse.json({
         success: false,
-        error: "TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN not configured in environment variables",
+        warning: "TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN missing in Render Environment. Please set them in your Render dashboard.",
         formatted_message: messageText,
         recipient: formattedTo,
       });
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       
       const contentSid =
         process.env.TWILIO_CONTENT_SID ||
-        "HXb5b62575e6e4ff6129ad7c8efe1f983e"; // Default Twilio Appointment/Alert template
+        "HXb5b62575e6e4ff6129ad7c8efe1f983e"; // Default Twilio sandbox template
 
       const templateParams = new URLSearchParams();
       templateParams.append("From", fromNumber);
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
         "ContentVariables",
         JSON.stringify({
           "1": `${camName} (${eventType})`,
-          "2": `${timeStr} IST - License: ${plate}`,
+          "2": `${timeStr} IST - Plate: ${plate}`,
         })
       );
 
@@ -126,12 +126,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (!twilioRes.ok) {
-      console.error("Twilio API Error Final:", twilioData);
+      console.error("Twilio API Error:", twilioData);
       return NextResponse.json(
         {
           success: false,
           twilio_error: twilioData,
           recipient: formattedTo,
+          formatted_message: messageText,
         },
         { status: twilioRes.status }
       );
