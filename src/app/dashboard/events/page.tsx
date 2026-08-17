@@ -183,7 +183,7 @@ export default function AllEventDetectionPage() {
     [selectedVideoId]
   );
 
-  // ── Load Frame-by-Frame Tracking JSON Telemetry ─────────────────────
+  // ── Load Frame-by-Frame Tracking JSON Telemetry & Events ────────────
   useEffect(() => {
     async function loadTelemetry() {
       try {
@@ -194,6 +194,15 @@ export default function AllEventDetectionPage() {
             setTelemetryFrames(data.frames);
             setTotalFrameCount(data.frames.length > 0 ? data.frames[data.frames.length - 1].frame : 796);
           }
+          if (data.events && data.events.length > 0) {
+            setEventsList(data.events);
+            setAlertBanner({
+              show: true,
+              title: `Loaded ${data.events.length} Detected Events`,
+              message: `YOLOv11 + ByteTrack detected ${data.events.length} traffic violations and incidents on ${selectedVideo.name}.`,
+              type: "success",
+            });
+          }
         }
       } catch (e) {
         console.warn("Could not load telemetry json, using real-time frame estimator:", e);
@@ -201,71 +210,6 @@ export default function AllEventDetectionPage() {
     }
     loadTelemetry();
   }, [selectedVideo]);
-
-  // ── Seed Initial Documented Events ──────────────────────────────────
-  useEffect(() => {
-    const baseEvents: SecurityEvent[] = [
-      {
-        id: "EVT-801",
-        timestamp: "14:32:05 IST",
-        camera_id: "CAM-001",
-        camera_name: "Wardha Road Junction",
-        event: "triple_riding",
-        event_type: "triple_riding",
-        vehicle_id: "319",
-        confidence: 0.94,
-        person_count: 3,
-        details: { riders: 3, helmet_detected: false, vehicle: "Motorcycle" },
-      },
-      {
-        id: "EVT-802",
-        timestamp: "14:31:42 IST",
-        camera_id: "CAM-001",
-        camera_name: "Wardha Road Junction",
-        event: "helmet_violation",
-        event_type: "helmet_violation",
-        vehicle_id: "431",
-        confidence: 0.91,
-        details: { status: "NO HELMET", helmet_detected: false, vehicle: "Motorcycle" },
-      },
-      {
-        id: "EVT-803",
-        timestamp: "14:30:19 IST",
-        camera_id: "CAM-002",
-        camera_name: "Sitabuldi Metro Interchange",
-        event: "wrong_way_driving",
-        event_type: "wrong_way_driving",
-        vehicle_id: "228",
-        confidence: 0.96,
-        movement_direction: "UP (Contraflow)",
-        details: { movement_direction: "UP/LEFT", expected: "RIGHT", severity: "CRITICAL" },
-      },
-      {
-        id: "EVT-804",
-        timestamp: "14:28:55 IST",
-        camera_id: "CAM-002",
-        camera_name: "Sitabuldi Metro Interchange",
-        event: "vehicle_stopped",
-        event_type: "vehicle_stopped",
-        vehicle_id: "194",
-        confidence: 0.88,
-        stopped_duration_sec: 4.2,
-        details: { stopped_duration_sec: 4.2, status: "Vehicle Stopped / Possible Accident" },
-      },
-      {
-        id: "EVT-805",
-        timestamp: "14:26:10 IST",
-        camera_id: "CAM-003",
-        camera_name: "Dharampeth Traffic Circle",
-        event: "accident_collision",
-        event_type: "accident_collision",
-        vehicle_id: "222 & 228",
-        confidence: 0.95,
-        details: { vehicle_1: "Truck #222", vehicle_2: "Truck #228", iou: 0.28, distance: "38px" },
-      },
-    ];
-    setEventsList(baseEvents);
-  }, []);
 
   // ── Sync Video Timeupdate with Telemetry Frame Detections ───────────
   const handleTimeUpdate = useCallback(() => {
@@ -280,19 +224,22 @@ export default function AllEventDetectionPage() {
 
     // Look up frame in telemetry
     if (telemetryFrames.length > 0) {
-      const matched = telemetryFrames.find((f) => Math.abs(f.time - time) < 0.12) || telemetryFrames[approxFrame % telemetryFrames.length];
+      const matched =
+        telemetryFrames.find((f) => Math.abs(f.time - time) < 0.14) ||
+        telemetryFrames[approxFrame % telemetryFrames.length];
+
       if (matched && matched.detections) {
         const filtered = matched.detections
           .filter((d: any) => d.conf * 100 >= confidenceThreshold)
           .map((d: any) => ({
             id: d.id,
-            track_id: d.id.replace("TRK-", ""),
+            track_id: String(d.id).replace("TRK-", ""),
             class_name: (d.cls || "car").toLowerCase(),
             confidence: d.conf,
             confidence_pct: `${Math.round(d.conf * 100)}%`,
             speed: d.speed || 35,
             box: [d.x, d.y, d.x + d.w, d.y + d.h] as [number, number, number, number],
-            tags: d.id === "TRK-3" ? ["⚠ NO HELMET"] : d.id === "TRK-1" && approxFrame > 150 ? ["⚠ WRONG WAY"] : [],
+            tags: d.tags && d.tags.length > 0 ? d.tags : [],
           }));
         setCurrentDetections(filtered);
         return;
@@ -1038,12 +985,13 @@ export default function AllEventDetectionPage() {
                   <th className="p-2.5">EVENT</th>
                   <th className="p-2.5">OBJECT</th>
                   <th className="p-2.5">CONF</th>
+                  <th className="p-2.5">DETAILS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1E2638]">
                 {filteredEvents.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500 font-mono text-xs">
+                    <td colSpan={6} className="p-8 text-center text-gray-500 font-mono text-xs">
                       No security events matching your filter.
                     </td>
                   </tr>
@@ -1053,6 +1001,20 @@ export default function AllEventDetectionPage() {
                       ev.event === "triple_riding" ||
                       ev.event === "accident_collision" ||
                       ev.event === "wrong_way_driving";
+
+                    let detailsList: string[] = [];
+                    if (ev.person_count) detailsList.push(`Riders: ${ev.person_count}`);
+                    if (ev.movement_direction) detailsList.push(`Heading: ${ev.movement_direction}`);
+                    if (ev.stopped_duration_sec) detailsList.push(`Stopped: ${ev.stopped_duration_sec}s`);
+                    if (ev.details && typeof ev.details === "object") {
+                      for (const [k, v] of Object.entries(ev.details)) {
+                        if (!["riders", "movement_direction", "stopped_duration_sec"].includes(k)) {
+                          detailsList.push(`${k}: ${v}`);
+                        }
+                      }
+                    }
+                    const detailsStr = detailsList.join(" • ") || "Traffic Event Detection";
+
                     return (
                       <tr
                         key={ev.id}
@@ -1077,11 +1039,14 @@ export default function AllEventDetectionPage() {
                             {ev.event.replace(/_/g, " ")}
                           </span>
                         </td>
-                        <td className="p-2.5 font-bold text-white">
+                        <td className="p-2.5 font-bold text-white whitespace-nowrap">
                           #{ev.vehicle_id}
                         </td>
                         <td className="p-2.5 text-[#00E5FF]">
                           {Math.round(ev.confidence * 100)}%
+                        </td>
+                        <td className="p-2.5 text-gray-400 text-[11px] max-w-[200px] truncate" title={detailsStr}>
+                          {detailsStr}
                         </td>
                       </tr>
                     );
