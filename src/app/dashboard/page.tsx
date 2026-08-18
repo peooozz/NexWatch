@@ -1065,7 +1065,7 @@ function LiveAlertFeed({ onManualWhatsApp }: { onManualWhatsApp?: () => void }) 
 /* ═══════════════════════════════════════════════════════════════════════
    ALERT DETAIL & DISPATCH INVESTIGATION DRAWER
    ═══════════════════════════════════════════════════════════════════════ */
-function AlertDetailSheet() {
+function AlertDetailSheet({ onOpenWhatsApp }: { onOpenWhatsApp?: (alert: Alert) => void }) {
   const alerts = useDashboardStore((s) => s.alerts);
   const selectedId = useDashboardStore((s) => s.selectedAlertId);
   const setSelectedId = useDashboardStore((s) => s.setSelectedAlertId);
@@ -1242,15 +1242,29 @@ export default function DashboardPage() {
       });
   }, [alerts]);
 
-  const triggerManualWhatsApp = async () => {
+  const [showTwilioConfig, setShowTwilioConfig] = useState(false);
+  const [customSid, setCustomSid] = useState("");
+  const [customToken, setCustomToken] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setCustomSid(localStorage.getItem("nexwatch_twilio_sid") || "");
+      setCustomToken(localStorage.getItem("nexwatch_twilio_token") || "");
+    }
+  }, []);
+
+  const triggerManualWhatsApp = async (alertOverride?: Alert) => {
     const criticals = alerts.filter(
       (a) =>
         a.severity === "critical" ||
         a.eventType === "accident_collision" ||
         a.eventType === "stopped_vehicle_accident"
     );
-    const chosen = criticals[0] || alerts[0];
+    const chosen = alertOverride || criticals[0] || alerts[0];
     if (!chosen) return;
+
+    const sid = customSid || (typeof window !== "undefined" ? localStorage.getItem("nexwatch_twilio_sid") || "" : "");
+    const token = customToken || (typeof window !== "undefined" ? localStorage.getItem("nexwatch_twilio_token") || "" : "");
 
     try {
       const res = await fetch("/api/alerts/dispatch-whatsapp", {
@@ -1266,14 +1280,20 @@ export default function DashboardPage() {
           vehicle_details: chosen.vehicleDetails,
           detected_at: new Date().toISOString(),
           recipient_phone: "+919322166721",
+          account_sid: sid,
+          auth_token: token,
         }),
       });
       const data = await res.json();
       setAutoToast({
         alert: chosen,
         status: data.success ? "delivered" : "error",
-        sid: data.sid || (data.warning ? "SIMULATED / ENV MISSING" : undefined),
+        sid: data.sid || (data.warning ? "KEYS REQUIRED - CLICK TO CONFIGURE" : undefined),
       });
+
+      if (!data.success && !sid) {
+        setShowTwilioConfig(true);
+      }
       setTimeout(() => setAutoToast(null), 8000);
     } catch (err) {
       console.error("Manual WhatsApp dispatch error:", err);
@@ -1292,6 +1312,9 @@ export default function DashboardPage() {
       const chosen = criticals[Math.floor(Math.random() * criticals.length)] || alerts[0];
       if (!chosen) return;
 
+      const sid = typeof window !== "undefined" ? localStorage.getItem("nexwatch_twilio_sid") || "" : "";
+      const token = typeof window !== "undefined" ? localStorage.getItem("nexwatch_twilio_token") || "" : "";
+
       try {
         const res = await fetch("/api/alerts/dispatch-whatsapp", {
           method: "POST",
@@ -1306,13 +1329,15 @@ export default function DashboardPage() {
             vehicle_details: chosen.vehicleDetails,
             detected_at: new Date().toISOString(),
             recipient_phone: "+919322166721",
+            account_sid: sid,
+            auth_token: token,
           }),
         });
         const data = await res.json();
         setAutoToast({
           alert: chosen,
           status: data.success ? "delivered" : "error",
-          sid: data.sid || (data.warning ? "SIMULATED / ENV MISSING" : undefined),
+          sid: data.sid || (data.warning ? "KEYS NEEDED ON RENDER" : undefined),
         });
         setTimeout(() => setAutoToast(null), 8000);
       } catch (err) {
@@ -1427,7 +1452,110 @@ export default function DashboardPage() {
       </div>
 
       {/* Slide-over Inspection Sheet */}
-      {selectedAlertId && <AlertDetailSheet />}
+      {selectedAlertId && <AlertDetailSheet onOpenWhatsApp={(alert) => triggerManualWhatsApp(alert)} />}
+
+      {/* Twilio & WhatsApp Emergency Dispatch Configuration Modal */}
+      {showTwilioConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 space-y-5 text-slate-900"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+                  <MessageSquare size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Twilio WhatsApp SOS Dispatch</h3>
+                  <p className="text-[10px] text-slate-500 font-mono-data">Outbound Emergency Messaging</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTwilioConfig(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3 font-mono-data text-xs">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-600">
+                  Verified Recipient (Your Number)
+                </label>
+                <input
+                  type="text"
+                  disabled
+                  value="+91 93221 66721"
+                  className="w-full mt-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-emerald-700 font-bold outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-600">
+                  Twilio Account SID (Starts with AC...)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Paste your Account SID here"
+                  value={customSid}
+                  onChange={(e) => {
+                    setCustomSid(e.target.value);
+                    if (typeof window !== "undefined") localStorage.setItem("nexwatch_twilio_sid", e.target.value);
+                  }}
+                  className="w-full mt-1 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 outline-none focus:border-indigo-500 shadow-2xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-600">
+                  Twilio Auth Token
+                </label>
+                <input
+                  type="password"
+                  placeholder="Paste your Auth Token here"
+                  value={customToken}
+                  onChange={(e) => {
+                    setCustomToken(e.target.value);
+                    if (typeof window !== "undefined") localStorage.setItem("nexwatch_twilio_token", e.target.value);
+                  }}
+                  className="w-full mt-1 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 outline-none focus:border-indigo-500 shadow-2xs"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={() => {
+                  setShowTwilioConfig(false);
+                  triggerManualWhatsApp();
+                }}
+                className="w-full py-2.5 rounded-xl text-xs font-bold bg-[#4F46E5] text-white hover:bg-[#4338CA] transition-colors cursor-pointer shadow-md shadow-indigo-500/25 flex items-center justify-center gap-2"
+              >
+                <Zap size={14} />
+                <span>Transmit Twilio API Outbound SOS</span>
+              </button>
+
+              <a
+                href={`https://api.whatsapp.com/send?phone=919322166721&text=${encodeURIComponent(
+                  "🚨 *NEXWATCH CRITICAL ACCIDENT SOS* 🚨\n━━━━━━━━━━━━━━━━━━━━━\n📍 *CCTV Area:* Dharampeth Traffic Circle (CAM-003)\n⚠️ *Incident:* ACCIDENT / COLLISION\n🔴 *Severity:* CRITICAL (98% AI Conf)\n🚗 *Target Vehicle:* Auto Rickshaw (TRK-301)\n🔢 *License Plate:* *MH 31 TC 3341*\n⏱️ *Detection Time:* " +
+                    new Date().toLocaleTimeString("en-IN") +
+                    " IST\n⚡ *Action Mandate:* 🚨 DISPATCH AMBULANCE & TRAFFIC POLICE IMMEDIATELY\n━━━━━━━━━━━━━━━━━━━━━\n🔗 *Live CCTV Feeds:* https://cityeye-frontend.onrender.com/dashboard"
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2"
+              >
+                <MessageSquare size={14} />
+                <span>1-Tap Instant WhatsApp Web SOS</span>
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useDashboardStore } from "@/lib/store";
 import { cameras, getEventLabel } from "@/lib/mock-data";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -16,6 +16,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from "recharts";
 import {
   AlertTriangle,
@@ -31,11 +32,12 @@ import {
   Camera as CameraIcon,
   Layers,
   ArrowUpRight,
+  RefreshCw,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 /* ═══════════════════════════════════════════════════════════════════════
-   KPI Card Component (White Glassmorphic)
+   KPI Card Component
    ═══════════════════════════════════════════════════════════════════════ */
 function KpiCard({
   label,
@@ -87,8 +89,17 @@ function KpiCard({
 export default function AnalyticsPage() {
   const alerts = useDashboardStore((s) => s.alerts);
   const [selectedCamera, setSelectedCamera] = useState("all");
+  const [livePulseTick, setLivePulseTick] = useState(0);
 
-  // Dynamic calculations synced with live surveillance feed
+  // Real-time live pulse ticker syncing every 3 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLivePulseTick((prev) => prev + 1);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Filter alerts by camera
   const liveFilteredAlerts = useMemo(() => {
     if (selectedCamera === "all") return alerts;
     return alerts.filter((a) => a.cameraId === selectedCamera);
@@ -103,7 +114,47 @@ export default function AnalyticsPage() {
   ).length;
   const resolutionRate = totalIncidents > 0 ? Math.round((resolvedCount / totalIncidents) * 100) : 100;
 
-  // Dynamic Event Type Breakdown synced with Live Alerts
+  // 1. EXACT 24-HOUR BINS HOURLY INCIDENT DISTRIBUTION (Matching Screenshot)
+  const hourly24BinsData = useMemo(() => {
+    const currentHour = new Date().getHours();
+    const data = [];
+
+    const hourMultipliers = [
+      4, 5, 2, 3, 6, 3, 7, 13, 20, 18, 24, 21, 16, 14, 17, 22, 16, 21, 11, 15, 2, 4, 17, 3
+    ];
+
+    for (let h = 0; h < 24; h++) {
+      const isCurrent = h === currentHour;
+      const base = hourMultipliers[h % hourMultipliers.length];
+      const liveAdd = isCurrent ? (livePulseTick % 5) + 2 : 0;
+      const count = base + liveAdd;
+
+      data.push({
+        hour: `${h.toString().padStart(2, "0")}:00`,
+        alerts: count,
+        isCurrent,
+      });
+    }
+    return data;
+  }, [livePulseTick]);
+
+  // 2. EXACT 7-DAY PER-NODE FREQUENCY SECTOR TREND (Matching Screenshot)
+  const sectorTrendData = useMemo(() => {
+    const dates = ["08-12", "08-13", "08-14", "08-15", "08-16", "08-17", "08-18"];
+    const offset = livePulseTick % 3;
+
+    return dates.map((date, idx) => {
+      return {
+        date,
+        "Wardha Road Junction": 80 + Math.sin(idx * 1.1) * 8 + (idx === 6 ? offset * 2 : 0),
+        "Sitabuldi Metro Interchange": 105 - idx * 6 + (idx === 6 ? offset * 3 : 0),
+        "Dharampeth Traffic Circle": 57 + idx * 5 + Math.cos(idx * 0.9) * 6,
+        "Ambazari Lake Promenade": 78 + Math.sin(idx * 1.5) * 22 + (idx === 6 ? offset : 0),
+      };
+    });
+  }, [livePulseTick]);
+
+  // Event category share
   const eventDistribution = useMemo(() => {
     const counts: Record<string, number> = {};
     liveFilteredAlerts.forEach((a) => {
@@ -119,7 +170,7 @@ export default function AnalyticsPage() {
     }));
   }, [liveFilteredAlerts]);
 
-  // Dynamic Camera-wise Incident Distribution synced with live feeds
+  // Camera distribution matrix
   const cameraDistribution = useMemo(() => {
     return cameras.map((cam) => {
       const camAlerts = alerts.filter((a) => a.cameraId === cam.id);
@@ -136,24 +187,6 @@ export default function AnalyticsPage() {
     });
   }, [alerts]);
 
-  // Dynamic 24-Hour Timeline synced with alert detection timestamps
-  const hourlyData = useMemo(() => {
-    const hours = Array.from({ length: 12 }, (_, i) => {
-      const h = (new Date().getHours() - 11 + i + 24) % 24;
-      return `${h.toString().padStart(2, "0")}:00`;
-    });
-
-    return hours.map((hour, idx) => {
-      // Base realistic count + live alert density
-      const seed = (idx * 7 + liveFilteredAlerts.length) % 15 + 3;
-      return {
-        hour,
-        Incidents: idx === 11 ? liveFilteredAlerts.length : seed,
-        Critical: Math.max(1, Math.floor(seed * 0.3)),
-      };
-    });
-  }, [liveFilteredAlerts]);
-
   return (
     <div className="max-w-[1600px] mx-auto space-y-6">
       {/* Top Bar: Selector + Live Telemetry */}
@@ -161,11 +194,11 @@ export default function AnalyticsPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-slate-900">
-              Live Surveillance Intelligence & Analytics
+              NexWatch Intelligence & Live Analytics
             </h1>
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono-data font-bold animate-pulse flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              SYNCHRONIZED WITH 4 LIVE FEEDS
+              LIVE SURVEILLANCE SYNC
             </span>
           </div>
           <p className="text-xs text-slate-500 font-mono-data mt-1">
@@ -232,110 +265,133 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main 24-Hour Trend Line Chart */}
-        <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-4">
+      {/* Charts Grid: HOURLY INCIDENT DISTRIBUTION & 7-DAY SECTOR TREND (Matching User Image) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* 1. HOURLY INCIDENT DISTRIBUTION (TODAY) 24-HOUR BINS */}
+        <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Live Incident Velocity & Peak Density
-              </h3>
-              <p className="text-[11px] text-slate-500 font-mono-data">
-                Rolling 12-hour CCTV detection timeline
-              </p>
+              <span className="text-[11px] font-mono-data font-bold uppercase tracking-wider text-slate-500">
+                HOURLY INCIDENT DISTRIBUTION (TODAY)
+              </span>
             </div>
-            <span className="text-[10px] font-mono-data px-2.5 py-1 rounded-md bg-indigo-50 text-[#4F46E5] font-bold border border-indigo-200">
-              YOLOv11x Real-Time Stream
+            <span className="text-[10px] font-mono-data px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">
+              24-HOUR BINS
             </span>
           </div>
 
           <div className="h-[280px] w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={hourlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" opacity={0.7} />
-                <XAxis dataKey="hour" stroke="#64748B" fontSize={11} tickLine={false} />
-                <YAxis stroke="#64748B" fontSize={11} tickLine={false} />
+              <BarChart data={hourly24BinsData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#CBD5E1" vertical={false} opacity={0.6} />
+                <XAxis dataKey="hour" stroke="#64748B" fontSize={9} tickLine={false} interval={3} fontStyle="bold" />
+                <YAxis stroke="#64748B" fontSize={10} tickLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#0F172A",
+                    color: "#FFFFFF",
+                    borderColor: "#334155",
+                    borderRadius: "10px",
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+                    fontSize: "12px",
+                    fontFamily: "JetBrains Mono, monospace",
+                  }}
+                  cursor={{ fill: "rgba(99, 102, 241, 0.08)" }}
+                  formatter={(val: any) => [`alerts : ${val}`, ""]}
+                />
+                <Bar dataKey="alerts" fill="#0091FF" radius={[4, 4, 0, 0]}>
+                  {hourly24BinsData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.isCurrent ? "#00E5FF" : "#0091FF"}
+                      opacity={entry.isCurrent ? 1 : 0.9}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* 2. 7-DAY SECTOR TREND ANALYSIS PER-NODE FREQUENCY */}
+        <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <span className="text-[11px] font-mono-data font-bold uppercase tracking-wider text-slate-500">
+                7-DAY SECTOR TREND ANALYSIS
+              </span>
+            </div>
+            <span className="text-[10px] font-mono-data px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">
+              PER-NODE FREQUENCY
+            </span>
+          </div>
+
+          <div className="h-[280px] w-full pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={sectorTrendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#CBD5E1" opacity={0.6} />
+                <XAxis dataKey="date" stroke="#64748B" fontSize={10} tickLine={false} />
+                <YAxis stroke="#64748B" fontSize={10} tickLine={false} domain={[0, 130]} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "#FFFFFF",
                     borderColor: "#CBD5E1",
                     borderRadius: "12px",
                     boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-                    fontSize: "12px",
+                    fontSize: "11px",
                     fontFamily: "JetBrains Mono, monospace",
                   }}
                 />
                 <Line
-                  type="monotone"
-                  dataKey="Incidents"
-                  stroke="#4F46E5"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: "#4F46E5" }}
-                  activeDot={{ r: 6 }}
+                  type="natural"
+                  dataKey="Ambazari Lake Promenade"
+                  stroke="#A855F7"
+                  strokeWidth={2.2}
+                  dot={{ r: 3, fill: "#A855F7" }}
                 />
                 <Line
-                  type="monotone"
-                  dataKey="Critical"
-                  stroke="#EF4444"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  dot={{ r: 3, fill: "#EF4444" }}
+                  type="natural"
+                  dataKey="Dharampeth Traffic Circle"
+                  stroke="#10B981"
+                  strokeWidth={2.2}
+                  dot={{ r: 3, fill: "#10B981" }}
+                />
+                <Line
+                  type="natural"
+                  dataKey="Sitabuldi Metro Interchange"
+                  stroke="#F59E0B"
+                  strokeWidth={2.2}
+                  dot={{ r: 3, fill: "#F59E0B" }}
+                />
+                <Line
+                  type="natural"
+                  dataKey="Wardha Road Junction"
+                  stroke="#00E5FF"
+                  strokeWidth={2.2}
+                  dot={{ r: 3, fill: "#00E5FF" }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
 
-        {/* Live Violation Types Pie Chart */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-4">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-slate-900">
-              Live Violation Category Share
-            </h3>
-            <p className="text-[11px] text-slate-500 font-mono-data">
-              Synchronized category distribution
-            </p>
-          </div>
-
-          <div className="h-[200px] w-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={eventDistribution}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {eventDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#FFFFFF",
-                    borderColor: "#CBD5E1",
-                    borderRadius: "12px",
-                    fontSize: "12px",
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="space-y-1.5 pt-1">
-            {eventDistribution.slice(0, 4).map((entry) => (
-              <div key={entry.name} className="flex items-center justify-between text-xs font-mono-data">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: entry.color }} />
-                  <span className="text-slate-700 truncate max-w-[170px]">{entry.name}</span>
-                </div>
-                <span className="font-bold text-slate-900">{entry.value}</span>
-              </div>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[10px] font-mono-data">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#A855F7]" />
+              <span className="text-[#A855F7] font-semibold">Ambazari Lake Promenade</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
+              <span className="text-[#10B981] font-semibold">Dharampeth Traffic Circle</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
+              <span className="text-[#F59E0B] font-semibold">Sitabuldi Metro Interchange</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00E5FF]" />
+              <span className="text-[#00E5FF] font-semibold">Wardha Road Junction</span>
+            </div>
           </div>
         </div>
       </div>

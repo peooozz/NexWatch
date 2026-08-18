@@ -4,24 +4,35 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const accountSid =
+    const accountSid = (
+      body.account_sid ||
       process.env.TWILIO_ACCOUNT_SID ||
       process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID ||
-      "";
-    const authToken =
+      ""
+    ).trim();
+
+    const authToken = (
+      body.auth_token ||
       process.env.TWILIO_AUTH_TOKEN ||
       process.env.NEXT_PUBLIC_TWILIO_AUTH_TOKEN ||
-      "";
-    const fromNumber =
-      process.env.TWILIO_WHATSAPP_FROM || "whatsapp:+17372508034";
-    const toNumber =
+      ""
+    ).trim();
+
+    const fromNumber = (
+      body.from_phone ||
+      process.env.TWILIO_WHATSAPP_FROM ||
+      "whatsapp:+17372508034"
+    ).trim();
+
+    const rawTo = (
       body.recipient_phone ||
       process.env.TWILIO_WHATSAPP_TO ||
-      "+919322166721";
+      "+919322166721"
+    ).trim();
 
-    const formattedTo = toNumber.startsWith("whatsapp:")
-      ? toNumber
-      : `whatsapp:${toNumber}`;
+    const formattedTo = rawTo.startsWith("whatsapp:")
+      ? rawTo
+      : `whatsapp:${rawTo.startsWith("+") ? rawTo : "+" + rawTo}`;
 
     const camName = body.camera_name || "Dharampeth Traffic Circle";
     const camId = body.camera_id || "CAM-003";
@@ -37,14 +48,14 @@ export async function POST(req: NextRequest) {
     const trackId = body.track_id || "TRK-301";
     const timeStr = new Date().toLocaleTimeString("en-IN", { hour12: false });
 
-    let header = "🚨 *CITYEYE CRITICAL ACCIDENT SOS* 🚨";
+    let header = "🚨 *NEXWATCH CRITICAL ACCIDENT SOS* 🚨";
     let action = "🚨 DISPATCH AMBULANCE / EMS & TRAFFIC POLICE IMMEDIATELY";
 
     if (eventType.includes("CROWD") || eventType.includes("DENSITY")) {
-      header = "👥 *CITYEYE OVERCROWDING SURGE ALERT* 👥";
+      header = "👥 *NEXWATCH OVERCROWDING SURGE ALERT* 👥";
       action = "👥 DISPATCH RAPID ACTION FORCE (RAF) / CROWD CONTROL";
     } else if (eventType.includes("WRONG")) {
-      header = "⛔ *CITYEYE CONTRAFLOW / WRONG-WAY ALERT* ⛔";
+      header = "⛔ *NEXWATCH CONTRAFLOW / WRONG-WAY ALERT* ⛔";
       action = "⛔ INTERCEPT CONTRAFLOW VEHICLE / DIVERT TRAFFIC";
     }
 
@@ -59,16 +70,17 @@ export async function POST(req: NextRequest) {
 ⚡ *Action Mandate:* ${action}
 ━━━━━━━━━━━━━━━━━━━━━
 🔗 *Live CCTV Feeds:* https://cityeye-frontend.onrender.com/dashboard
-📡 *CityEye Command Center | Twilio Emergency Dispatch*`;
+📡 *NexWatch Command Center | Twilio Emergency Dispatch*`;
+
+    const whatsappWebLink = `https://api.whatsapp.com/send?phone=${rawTo.replace(/[^0-9]/g, "")}&text=${encodeURIComponent(messageText)}`;
 
     if (!accountSid || !authToken) {
-      console.warn(
-        "Twilio credentials (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN) not set in environment."
-      );
+      console.warn("Twilio Account SID or Auth Token missing.");
       return NextResponse.json({
         success: false,
-        warning: "TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN missing in Render Environment. Please set them in your Render dashboard.",
+        warning: "TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN missing. Please enter them or configure in Render Dashboard.",
         formatted_message: messageText,
+        whatsapp_web_url: whatsappWebLink,
         recipient: formattedTo,
       });
     }
@@ -76,7 +88,7 @@ export async function POST(req: NextRequest) {
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
     const basicAuth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
 
-    // 1. Try sending direct Body message first
+    // 1. Try sending direct Body message
     const params = new URLSearchParams();
     params.append("From", fromNumber);
     params.append("To", formattedTo);
@@ -93,13 +105,13 @@ export async function POST(req: NextRequest) {
 
     let twilioData = await twilioRes.json();
 
-    // 2. If Twilio requires ContentSid (error code 21654), retry with pre-approved Content Template
-    if (!twilioRes.ok && (twilioData.code === 21654 || twilioData.message?.includes("ContentSid"))) {
-      console.log("Twilio 21654 detected: Retrying with Content Template fallback...");
+    // 2. If Twilio requires ContentSid (error code 21654 or 63016), retry with fallback template
+    if (!twilioRes.ok && (twilioData.code === 21654 || twilioData.code === 63016 || twilioData.message?.includes("ContentSid"))) {
+      console.log("Retrying with Twilio Sandbox template fallback...");
       
       const contentSid =
         process.env.TWILIO_CONTENT_SID ||
-        "HXb5b62575e6e4ff6129ad7c8efe1f983e"; // Default Twilio sandbox template
+        "HXb5b62575e6e4ff6129ad7c8efe1f983e";
 
       const templateParams = new URLSearchParams();
       templateParams.append("From", fromNumber);
@@ -131,10 +143,12 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           twilio_error: twilioData,
+          error_message: twilioData.message || "Twilio delivery error",
           recipient: formattedTo,
           formatted_message: messageText,
+          whatsapp_web_url: whatsappWebLink,
         },
-        { status: twilioRes.status }
+        { status: 200 } // Return 200 with error details so UI handles gracefully
       );
     }
 
@@ -144,6 +158,7 @@ export async function POST(req: NextRequest) {
       status: twilioData.status,
       recipient: formattedTo,
       formatted_message: messageText,
+      whatsapp_web_url: whatsappWebLink,
     });
   } catch (error: any) {
     console.error("WhatsApp Dispatch Handler Error:", error);

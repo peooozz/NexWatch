@@ -68,11 +68,11 @@ export function Logo({ size = "md", showText = true }: LogoProps) {
       {/* Aesthetic Clean Typography */}
       {showText && (
         <div className="flex items-baseline tracking-tight">
-          <span className={`${textSize} font-extrabold text-[#0F172A]`}>City</span>
+          <span className={`${textSize} font-extrabold text-[#0F172A]`}>Nex</span>
           <span
             className={`${textSize} font-black bg-gradient-to-r from-[#4F46E5] via-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent ml-0.5`}
           >
-            Eye
+            Watch
           </span>
         </div>
       )}
