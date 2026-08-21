@@ -38,6 +38,11 @@ def get_live_detector_status():
         "description": "Dedicated lightweight YOLOv11 Nano detector for /dashboard/events route",
     }
 
+@router.get("/detections")
+def get_live_detections():
+    """Returns the latest bounding boxes, speeds, and incidents for the live stream."""
+    return mobile_live_detector.get_latest_state()
+
 @router.post("/config")
 def update_live_stream_config(payload: StreamConfigUpdate):
     """Updates the active ngrok URL or frame sampling rate dynamically."""

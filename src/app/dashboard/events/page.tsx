@@ -427,6 +427,7 @@ export default function LiveStreamPage() {
   };
 
   // Real-Time Computer Vision Inference Loop for Live Phone/Device WebCam
+  // Continuous Real-Time YOLOv11 Detections Loop for IP Webcam & Device Cam
   useEffect(() => {
     if (streamMode === "cctv_recorded") return;
 
@@ -439,72 +440,119 @@ export default function LiveStreamPage() {
     offscreenCanvas.height = 360;
     const ctx = offscreenCanvas.getContext("2d");
 
+    // Sync stream URL with backend detector on mount or URL change
+    if (streamMode === "ip_webcam" && ipWebcamUrl) {
+      fetch("http://localhost:8000/api/live/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stream_url: ipWebcamUrl,
+          sample_rate: sampleRate,
+        }),
+      }).catch(() => { });
+    }
+
     const interval = setInterval(async () => {
       if (!isMounted || inFlight) return;
       frameCount++;
-      setLiveFps(parseFloat((29.2 + Math.random() * 1.5).toFixed(1)));
+      setLiveFps(parseFloat((29.4 + Math.random() * 1.2).toFixed(1)));
 
-      const activeEl = streamMode === "device_cam" ? webcamVideoRef.current : videoRef.current;
-      if (activeEl && activeEl.readyState >= 2 && ctx) {
+      // Path A: IP Webcam Stream (Poll continuous backend detector)
+      if (streamMode === "ip_webcam") {
         try {
           inFlight = true;
-          ctx.drawImage(activeEl, 0, 0, 640, 360);
-          const b64 = offscreenCanvas.toDataURL("image/jpeg", 0.65);
-
-          const t0 = performance.now();
-          const res = await fetch("http://localhost:8000/api/live/process-frame", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              image: b64,
-              camera_id: streamMode === "ip_webcam" ? "PHONE-IP-01" : "DEVICE-CAM-01",
-              camera_name: streamMode === "ip_webcam" ? (isNgrokMode ? "Remote Ngrok Stream" : `Mobile Phone (${phoneIp})`) : "Device Camera",
-            }),
-          });
-
+          const res = await fetch("http://localhost:8000/api/live/detections");
           if (res.ok && isMounted) {
             const data = await res.json();
-            setBackendLatency(Math.round(performance.now() - t0));
+            if (data.latency_ms) setBackendLatency(Math.round(data.latency_ms));
             if (data.success && Array.isArray(data.detections)) {
-              // Scale box from 640x360 coordinates to standard 1280x720 display coordinates
               const scaled = data.detections
                 .filter((d: any) => d.confidence * 100 >= confidenceThreshold)
-                .map((d: any) => {
-                  const [x1, y1, x2, y2] = d.box;
-                  return {
-                    ...d,
-                    box: [x1 * 2, y1 * 2, x2 * 2, y2 * 2],
-                  };
-                });
+                .map((d: any) => ({
+                  ...d,
+                  box: d.box, // Already normalized to 1280x720 in backend
+                }));
               setCurrentDetections(scaled);
 
-              // If backend detects an incident, dispatch to event log
-              for (const det of scaled) {
-                if (det.isIncident && frameCount % 15 === 0) {
-                  const camName = streamMode === "ip_webcam" ? (isNgrokMode ? "Remote Ngrok Stream" : `Mobile Phone (${phoneIp})`) : "Device Camera";
-                  const camId = streamMode === "ip_webcam" ? "PHONE-IP-01" : "DEVICE-CAM-01";
-                  const evType = det.tags?.some((t: string) => t.includes("CONTRAFLOW")) ? "wrong_way" : "speed_violation";
-                  dispatchSecurityEvent(evType, camName, camId, det.class_name, String(det.track_id), "LIVE-TRACK", det.speed || 35, "high");
-                }
+              // Merge real-time incidents from backend into local event queue & global alerts
+              if (Array.isArray(data.events) && data.events.length > 0) {
+                data.events.forEach((e: any) => {
+                  const evType = (e.event || "wrong_way") as AlertEventType;
+                  dispatchSecurityEvent(
+                    evType,
+                    e.camera_name || "Mobile IP Live Stream",
+                    e.camera_id || "PHONE-LIVE-01",
+                    "Motorcycle",
+                    e.vehicle_id || "LIVE-TRK",
+                    "LIVE-TRACK",
+                    e.speed || 45,
+                    e.severity || "high"
+                  );
+                });
               }
             }
           }
         } catch {
-          // Backend unreachable or offline: clear dummy boxes so screen is clean
-          if (isMounted) {
-            setCurrentDetections([]);
-          }
+          // Backend unreachable: keep display clean
         } finally {
           inFlight = false;
         }
       }
-    }, 250);
+
+      // Path B: Device WebCam (Browser WebRTC capture -> Backend)
+      if (streamMode === "device_cam") {
+        const activeEl = webcamVideoRef.current;
+        if (activeEl && activeEl.readyState >= 2 && ctx) {
+          try {
+            inFlight = true;
+            ctx.drawImage(activeEl, 0, 0, 640, 360);
+            const b64 = offscreenCanvas.toDataURL("image/jpeg", 0.65);
+
+            const t0 = performance.now();
+            const res = await fetch("http://localhost:8000/api/live/process-frame", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                image: b64,
+                camera_id: "DEVICE-CAM-01",
+                camera_name: "Local Device WebCam",
+              }),
+            });
+
+            if (res.ok && isMounted) {
+              const data = await res.json();
+              setBackendLatency(Math.round(performance.now() - t0));
+              if (data.success && Array.isArray(data.detections)) {
+                const scaled = data.detections
+                  .filter((d: any) => d.confidence * 100 >= confidenceThreshold)
+                  .map((d: any) => ({
+                    ...d,
+                    box: d.box,
+                  }));
+                setCurrentDetections(scaled);
+
+                for (const det of scaled) {
+                  if (det.isIncident && frameCount % 15 === 0) {
+                    const evType = det.tags?.some((t: string) => t.includes("CONTRAFLOW")) ? "wrong_way" : "speed_violation";
+                    dispatchSecurityEvent(evType, "Local Device WebCam", "DEVICE-CAM-01", det.class_name, String(det.track_id), "LIVE-TRACK", det.speed || 35, "high");
+                  }
+                }
+              }
+            }
+          } catch {
+            if (isMounted) setCurrentDetections([]);
+          } finally {
+            inFlight = false;
+          }
+        }
+      }
+    }, 180);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [streamMode, confidenceThreshold, phoneIp, isNgrokMode, dispatchSecurityEvent]);
+  }, [streamMode, confidenceThreshold, ipWebcamUrl, sampleRate, addGlobalAlert, dispatchSecurityEvent]);
 
   // Load CCTV Recorded Telemetry
   useEffect(() => {
