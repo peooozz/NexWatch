@@ -427,83 +427,85 @@ export default function LiveStreamPage() {
     }
   };
 
-  // Real-Time Computer Vision Detection Loop for Live Phone/Device WebCam
+  // Real-Time Computer Vision Inference Loop for Live Phone/Device WebCam
   useEffect(() => {
     if (streamMode === "cctv_recorded") return;
 
+    let isMounted = true;
+    let inFlight = false;
     let frameCount = 0;
-    const interval = setInterval(() => {
+
+    const offscreenCanvas = document.createElement("canvas");
+    offscreenCanvas.width = 640;
+    offscreenCanvas.height = 360;
+    const ctx = offscreenCanvas.getContext("2d");
+
+    const interval = setInterval(async () => {
+      if (!isMounted || inFlight) return;
       frameCount++;
       setLiveFps(parseFloat((29.2 + Math.random() * 1.5).toFixed(1)));
 
-      // Realistically positioned bounding boxes for live camera view
-      const liveDetections: DetectionItem[] = [
-        {
-          id: `LIVE-TRK-301`,
-          track_id: "301",
-          class_name: "auto",
-          confidence: 0.98,
-          confidence_pct: "98%",
-          speed: 34,
-          box: [280, 220, 520, 480],
-          tags: ["🛺 AUTO-RICKSHAW", "MH 31 TC 3341"],
-          isIncident: activeCollisionAlert,
-        },
-        {
-          id: `LIVE-TRK-102`,
-          track_id: "102",
-          class_name: "car",
-          confidence: 0.96,
-          confidence_pct: "96%",
-          speed: 48,
-          box: [640, 240, 960, 520],
-          tags: ["🚗 PASSENGER SEDAN", "MH 31 ER 9021"],
-        },
-        {
-          id: `LIVE-TRK-108`,
-          track_id: "108",
-          class_name: "motorcycle",
-          confidence: 0.91,
-          confidence_pct: "91%",
-          speed: 38,
-          box: [980, 280, 1180, 540],
-          tags: ["🏍️ TWO-WHEELER"],
-        },
-        {
-          id: `LIVE-TRK-501`,
-          track_id: "501",
-          class_name: "person",
-          confidence: 0.94,
-          confidence_pct: "94%",
-          speed: 4,
-          box: [120, 310, 240, 580],
-          tags: ["PEDESTRIAN"],
-        },
-      ].filter((d) => d.confidence * 100 >= confidenceThreshold);
+      const activeEl = streamMode === "device_cam" ? webcamVideoRef.current : videoRef.current;
+      if (activeEl && activeEl.readyState >= 2 && ctx) {
+        try {
+          inFlight = true;
+          ctx.drawImage(activeEl, 0, 0, 640, 360);
+          const b64 = offscreenCanvas.toDataURL("image/jpeg", 0.65);
 
-      setCurrentDetections(liveDetections);
+          const t0 = performance.now();
+          const res = await fetch("http://localhost:8000/api/live/process-frame", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image: b64,
+              camera_id: streamMode === "ip_webcam" ? "PHONE-IP-01" : "DEVICE-CAM-01",
+              camera_name: streamMode === "ip_webcam" ? (isNgrokMode ? "Remote Ngrok Stream" : `Mobile Phone (${phoneIp})`) : "Device Camera",
+            }),
+          });
 
-      // Automated periodic event detection every 18 seconds on live camera
-      if (frameCount % 60 === 0) {
-        const camName = streamMode === "ip_webcam" ? `Mobile IP Webcam (${phoneIp})` : "Local Edge Device Camera";
-        const camId = streamMode === "ip_webcam" ? "PHONE-IP-01" : "DEVICE-CAM-01";
-        const isCrash = frameCount % 120 === 0;
+          if (res.ok && isMounted) {
+            const data = await res.json();
+            setBackendLatency(Math.round(performance.now() - t0));
+            if (data.success && Array.isArray(data.detections)) {
+              // Scale box from 640x360 coordinates to standard 1280x720 display coordinates
+              const scaled = data.detections
+                .filter((d: any) => d.confidence * 100 >= confidenceThreshold)
+                .map((d: any) => {
+                  const [x1, y1, x2, y2] = d.box;
+                  return {
+                    ...d,
+                    box: [x1 * 2, y1 * 2, x2 * 2, y2 * 2],
+                  };
+                });
+              setCurrentDetections(scaled);
 
-        dispatchSecurityEvent(
-          isCrash ? "accident_collision" : "wrong_way",
-          camName,
-          camId,
-          isCrash ? "Auto Rickshaw" : "Motorcycle",
-          isCrash ? "TRK-301" : "TRK-108",
-          isCrash ? "MH 31 TC 3341" : "MH 31 EQ 8820",
-          isCrash ? 42 : 54,
-          isCrash ? "critical" : "high"
-        );
+              // If backend detects an incident, dispatch to event log
+              for (const det of scaled) {
+                if (det.isIncident && frameCount % 15 === 0) {
+                  const camName = streamMode === "ip_webcam" ? (isNgrokMode ? "Remote Ngrok Stream" : `Mobile Phone (${phoneIp})`) : "Device Camera";
+                  const camId = streamMode === "ip_webcam" ? "PHONE-IP-01" : "DEVICE-CAM-01";
+                  const evType = det.tags?.some((t: string) => t.includes("CONTRAFLOW")) ? "wrong_way" : "speed_violation";
+                  dispatchSecurityEvent(evType, camName, camId, det.class_name, String(det.track_id), "LIVE-TRACK", det.speed || 35, "high");
+                }
+              }
+            }
+          }
+        } catch {
+          // Backend unreachable or offline: clear dummy boxes so screen is clean
+          if (isMounted) {
+            setCurrentDetections([]);
+          }
+        } finally {
+          inFlight = false;
+        }
       }
-    }, 300);
+    }, 250);
 
-    return () => clearInterval(interval);
-  }, [streamMode, confidenceThreshold, phoneIp, activeCollisionAlert, dispatchSecurityEvent]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [streamMode, confidenceThreshold, phoneIp, isNgrokMode, dispatchSecurityEvent]);
 
   // Load CCTV Recorded Telemetry
   useEffect(() => {
