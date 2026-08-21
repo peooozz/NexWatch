@@ -1,9 +1,12 @@
 import os
+import sys
 import json
 import shutil
 import time
 from collections import defaultdict, deque
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -207,6 +210,7 @@ def process_video_file(
     camera_id: str = "CAM-001",
     camera_name: str = "Wardha Road Junction",
     expected_direction: str = "DOWN",
+    max_frames: int = 800,
 ):
     print(f"\nProcessing {input_path} with 4-Stage Helmet & Event Detection Engine -> {output_path}...")
     cap = cv2.VideoCapture(input_path)
@@ -217,8 +221,9 @@ def process_video_file(
     orig_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     orig_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    print(f"  Resolution: {orig_w}x{orig_h} -> Output: {TARGET_W}x{TARGET_H} | Flow: {expected_direction}")
+    raw_total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    total_frames = min(raw_total, max_frames) if max_frames else raw_total
+    print(f"  Resolution: {orig_w}x{orig_h} -> Output: {TARGET_W}x{TARGET_H} ({total_frames} frames) | Flow: {expected_direction}")
 
     fourcc = cv2.VideoWriter_fourcc(*"avc1")
     writer = cv2.VideoWriter(output_path, fourcc, fps, (TARGET_W, TARGET_H))
@@ -238,7 +243,7 @@ def process_video_file(
 
     frame_index = 0
 
-    while cap.isOpened():
+    while cap.isOpened() and (max_frames is None or frame_index < max_frames):
         ret, frame = cap.read()
         if not ret:
             break
@@ -618,15 +623,20 @@ if __name__ == "__main__":
     videos = [
         ("public/videos/cam1.mp4", "public/videos/cam1_tracked.mp4", "public/videos/cam1_tracking.json", "CAM-001", "Wardha Road Junction", "DOWN"),
         ("public/videos/cam2.mp4", "public/videos/cam2_tracked.mp4", "public/videos/cam2_tracking.json", "CAM-002", "Sitabuldi Metro Interchange", "RIGHT"),
+        ("public/videos/cam3.mp4", "public/videos/cam3_tracked.mp4", "public/videos/cam3_tracking.json", "CAM-003", "Dharampeth Traffic Circle", "LEFT"),
+        ("public/videos/cam4.mp4", "public/videos/cam4_tracked.mp4", "public/videos/cam4_tracking.json", "CAM-004", "Ambazari Lake Promenade", "DOWN"),
     ]
 
     for in_vid, out_vid, out_json, cam_id, cam_name, direction in videos:
         if os.path.exists(in_vid):
-            process_video_file(in_vid, out_vid, out_json, model, helmet_model=helmet_model, camera_id=cam_id, camera_name=cam_name, expected_direction=direction)
-
-            if in_vid.endswith("cam2.mp4"):
-                shutil.copyfile("public/videos/cam2_tracked.mp4", "public/videos/cam3_tracked.mp4")
-                shutil.copyfile("public/videos/cam2_tracked.mp4", "public/videos/cam4_tracked.mp4")
-                shutil.copyfile("public/videos/cam2_tracking.json", "public/videos/cam3_tracking.json")
-                shutil.copyfile("public/videos/cam2_tracking.json", "public/videos/cam4_tracking.json")
-                print("Duplicated standardized cam2 event tracking outputs for cam3 and cam4.")
+            process_video_file(
+                in_vid,
+                out_vid,
+                out_json,
+                model,
+                helmet_model=helmet_model,
+                camera_id=cam_id,
+                camera_name=cam_name,
+                expected_direction=direction,
+                max_frames=800,
+            )
