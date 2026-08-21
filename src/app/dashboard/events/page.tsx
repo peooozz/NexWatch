@@ -139,7 +139,8 @@ export default function LiveStreamPage() {
   const [streamMode, setStreamMode] = useState<StreamMode>("ip_webcam");
 
   // Phone IP / Ngrok Cloud Stream Configuration
-  const [phoneIp, setPhoneIp] = useState<string>("192.168.1.100");
+  const [cameraUrlInput, setCameraUrlInput] = useState<string>("10.168.222.244:8080");
+  const [phoneIp, setPhoneIp] = useState<string>("10.168.222.244");
   const [phonePort, setPhonePort] = useState<string>("8080");
   const [ngrokUrl, setNgrokUrl] = useState<string>("");
   const [isNgrokMode, setIsNgrokMode] = useState<boolean>(false);
@@ -196,39 +197,37 @@ export default function LiveStreamPage() {
   );
 
   const ipWebcamUrl = useMemo(() => {
-    if (isNgrokMode && ngrokUrl.trim()) {
-      let clean = ngrokUrl.trim();
-      if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
-        clean = "https://" + clean;
+    let val = cameraUrlInput.trim();
+    if (!val) return "http://10.168.222.244:8080/video";
+
+    if (!val.startsWith("http://") && !val.startsWith("https://")) {
+      if (val.includes("ngrok") || val.includes(".app") || val.includes(".com") || val.includes(".io")) {
+        val = "https://" + val;
+      } else {
+        val = "http://" + val;
       }
-      if (!clean.endsWith("/video") && !clean.endsWith(".m3u8") && !clean.endsWith("/mjpeg")) {
-        clean = clean.replace(/\/+$/, "") + "/video";
-      }
-      return clean;
     }
-    let cleanIp = phoneIp.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
-    return `http://${cleanIp}:${phonePort}/video`;
-  }, [phoneIp, phonePort, isNgrokMode, ngrokUrl]);
+
+    if (!val.endsWith("/video") && !val.endsWith(".m3u8") && !val.endsWith("/mjpeg") && !val.endsWith(".mp4")) {
+      val = val.replace(/\/+$/, "") + "/video";
+    }
+
+    return val;
+  }, [cameraUrlInput]);
 
   // Load saved IP & Ngrok from localStorage
   useEffect(() => {
     try {
-      const savedIp = localStorage.getItem("nexwatch_phone_ip");
-      const savedPort = localStorage.getItem("nexwatch_phone_port");
-      const savedNgrok = localStorage.getItem("nexwatch_ngrok_url");
+      const savedInput = localStorage.getItem("nexwatch_camera_url");
       const savedSample = localStorage.getItem("nexwatch_sample_rate");
-      if (savedIp) setPhoneIp(savedIp);
-      if (savedPort) setPhonePort(savedPort);
-      if (savedNgrok) setNgrokUrl(savedNgrok);
+      if (savedInput) setCameraUrlInput(savedInput);
       if (savedSample) setSampleRate(parseInt(savedSample, 10));
     } catch { }
   }, []);
 
   const handleSaveIpConfig = () => {
     try {
-      localStorage.setItem("nexwatch_phone_ip", phoneIp);
-      localStorage.setItem("nexwatch_phone_port", phonePort);
-      if (ngrokUrl) localStorage.setItem("nexwatch_ngrok_url", ngrokUrl);
+      localStorage.setItem("nexwatch_camera_url", cameraUrlInput);
       localStorage.setItem("nexwatch_sample_rate", String(sampleRate));
       setIpWebcamStatus("streaming");
 
@@ -244,7 +243,7 @@ export default function LiveStreamPage() {
 
       setAlertBanner({
         show: true,
-        title: isNgrokMode ? "Remote Ngrok Mobile Stream Connected" : "Local Phone IP Stream Connected",
+        title: "Mobile Stream Connected",
         message: `Connected live stream to ${ipWebcamUrl}. Lightweight YOLOv11 Nano detector active (Sampling 1:${sampleRate}).`,
         type: "success",
       });
@@ -656,63 +655,40 @@ export default function LiveStreamPage() {
 
                 {/* Smart Universal Input Field */}
                 <div className="flex items-center gap-1.5 bg-white border border-indigo-200 rounded-xl px-3 py-1.5 shadow-2xs">
-                  <Smartphone size={13} className="text-[#4F46E5]" />
+                  <Smartphone size={13} className="text-[#4F46E5] shrink-0" />
                   <input
                     type="text"
-                    value={isNgrokMode ? ngrokUrl : phoneIp.includes(":") ? phoneIp : `${phoneIp}:${phonePort}`}
-                    onChange={(e) => {
-                      const val = e.target.value.trim();
-                      if (isNgrokMode) {
-                        setNgrokUrl(val);
-                      } else {
-                        // Smart auto-parse: strips http://, extracts IP and port
-                        const cleaned = val.replace(/^https?:\/\//i, "").replace(/\/video.*$/i, "").replace(/\/.*$/i, "");
-                        if (cleaned.includes(":")) {
-                          const parts = cleaned.split(":");
-                          setPhoneIp(parts[0]);
-                          setPhonePort(parts[1] || "8080");
-                        } else {
-                          setPhoneIp(cleaned);
-                        }
-                      }
-                    }}
-                    placeholder={isNgrokMode ? "https://xxxx.ngrok-free.app/video" : "10.168.222.244:8080 or http://..."}
-                    className="bg-transparent text-slate-900 font-bold outline-none w-56 sm:w-64 text-xs"
+                    value={cameraUrlInput}
+                    onChange={(e) => setCameraUrlInput(e.target.value)}
+                    placeholder="Paste: 10.168.222.244:8080 or http://[2401:...]:8080"
+                    className="bg-transparent text-slate-900 font-bold outline-none w-64 sm:w-80 text-xs font-mono"
                   />
                 </div>
 
                 <button
                   onClick={handleSaveIpConfig}
-                  className="px-4 py-1.5 rounded-xl bg-[#4F46E5] text-white font-bold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
+                  className="px-4 py-1.5 rounded-xl bg-[#4F46E5] text-white font-bold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-xs flex items-center gap-1.5 shrink-0"
                 >
                   <span>Connect Stream</span>
                 </button>
 
                 {/* 1-Click Auto-Fill Buttons */}
-                {!isNgrokMode && (
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => {
-                        setPhoneIp("10.168.222.244");
-                        setPhonePort("8080");
-                      }}
-                      className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
-                      title="Fill Local Wi-Fi IPv4"
-                    >
-                      ⚡ Wi-Fi (10.168.222.244)
-                    </button>
-                    <button
-                      onClick={() => {
-                        setPhoneIp("[2401:4900:7c8c:6bb0::7d]");
-                        setPhonePort("8080");
-                      }}
-                      className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition-colors cursor-pointer"
-                      title="Fill Worldwide 5G IPv6"
-                    >
-                      🌐 5G IPv6 ([2401:...])
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setCameraUrlInput("10.168.222.244:8080")}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
+                    title="Fill Local Wi-Fi IPv4"
+                  >
+                    ⚡ Wi-Fi (10.168.222.244)
+                  </button>
+                  <button
+                    onClick={() => setCameraUrlInput("http://[2401:4900:7c8c:6bb0::7d]:8080")}
+                    className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition-colors cursor-pointer"
+                    title="Fill Worldwide 5G IPv6"
+                  >
+                    🌐 5G IPv6 ([2401:...])
+                  </button>
+                </div>
               </div>
 
               {/* Frame Sampling Selector for Cloud CPU */}
