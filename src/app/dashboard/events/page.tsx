@@ -597,8 +597,8 @@ export default function LiveStreamPage() {
           <button
             onClick={() => setStreamMode("ip_webcam")}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${streamMode === "ip_webcam"
-                ? "bg-white text-[#4F46E5] shadow-xs border border-slate-200"
-                : "text-slate-600 hover:text-slate-900"
+              ? "bg-white text-[#4F46E5] shadow-xs border border-slate-200"
+              : "text-slate-600 hover:text-slate-900"
               }`}
           >
             <Smartphone size={13} />
@@ -608,8 +608,8 @@ export default function LiveStreamPage() {
           <button
             onClick={() => setStreamMode("device_cam")}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${streamMode === "device_cam"
-                ? "bg-white text-emerald-700 shadow-xs border border-slate-200"
-                : "text-slate-600 hover:text-slate-900"
+              ? "bg-white text-emerald-700 shadow-xs border border-slate-200"
+              : "text-slate-600 hover:text-slate-900"
               }`}
           >
             <CameraIcon size={13} />
@@ -619,8 +619,8 @@ export default function LiveStreamPage() {
           <button
             onClick={() => setStreamMode("cctv_recorded")}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${streamMode === "cctv_recorded"
-                ? "bg-white text-indigo-700 shadow-xs border border-slate-200"
-                : "text-slate-600 hover:text-slate-900"
+              ? "bg-white text-indigo-700 shadow-xs border border-slate-200"
+              : "text-slate-600 hover:text-slate-900"
               }`}
           >
             <Video size={13} />
@@ -688,18 +688,30 @@ export default function LiveStreamPage() {
                   <span>Connect Stream</span>
                 </button>
 
-                {/* 1-Click Auto-Fill Detected Phone IP */}
+                {/* 1-Click Auto-Fill Buttons */}
                 {!isNgrokMode && (
-                  <button
-                    onClick={() => {
-                      setPhoneIp("10.168.222.244");
-                      setPhonePort("8080");
-                    }}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
-                    title="Fill from Phone Screen"
-                  >
-                    ⚡ Paste 10.168.222.244:8080
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        setPhoneIp("10.168.222.244");
+                        setPhonePort("8080");
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
+                      title="Fill Local Wi-Fi IPv4"
+                    >
+                      ⚡ Wi-Fi (10.168.222.244)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPhoneIp("[2401:4900:7c8c:6bb0::7d]");
+                        setPhonePort("8080");
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition-colors cursor-pointer"
+                      title="Fill Worldwide 5G IPv6"
+                    >
+                      🌐 5G IPv6 ([2401:...])
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -759,8 +771,8 @@ export default function LiveStreamPage() {
                   key={vid.id}
                   onClick={() => setSelectedVideoId(vid.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-mono-data font-bold transition-all cursor-pointer ${selectedVideoId === vid.id
-                      ? "bg-[#4F46E5] text-white shadow-xs"
-                      : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                    ? "bg-[#4F46E5] text-white shadow-xs"
+                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
                     }`}
                 >
                   {vid.id}: {vid.name.split(" ")[0]}
@@ -1028,8 +1040,8 @@ export default function LiveStreamPage() {
                     <td className="py-3">
                       <span
                         className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${isCritical
-                            ? "bg-rose-50 text-rose-700 border border-rose-200"
-                            : "bg-amber-50 text-amber-700 border border-amber-200"
+                          ? "bg-rose-50 text-rose-700 border border-rose-200"
+                          : "bg-amber-50 text-amber-700 border border-amber-200"
                           }`}
                       >
                         {evt.event_type}
