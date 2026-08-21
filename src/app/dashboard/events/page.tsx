@@ -65,6 +65,7 @@ export interface SecurityEvent {
   event_type: string;
   vehicle_id: string | number;
   confidence: number;
+  isSimulated?: boolean;
   movement_direction?: string;
   details?: Record<string, string | number | boolean>;
 }
@@ -322,7 +323,7 @@ export default function LiveStreamPage() {
       const timeStr = new Date().toLocaleTimeString("en-IN", { hour12: false });
       const eventId = `EVT-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-      // 1. Local Security Event
+      // 1. Local Security Event (Manual UI demo test trigger)
       const newEvt: SecurityEvent = {
         id: eventId,
         timestamp: timeStr,
@@ -331,7 +332,8 @@ export default function LiveStreamPage() {
         event: eventType,
         event_type: getEventLabel(eventType),
         vehicle_id: `${trackId} (${plate})`,
-        confidence: 0.98,
+        confidence: 0, // not a real automated detection — see isSimulated
+        isSimulated: true,
         movement_direction: eventType === "accident_collision" ? "Impact Vector 32G" : "Northbound",
         details: {
           speed: `${speed} km/h`,
@@ -1072,7 +1074,15 @@ export default function LiveStreamPage() {
                       </span>
                     </td>
                     <td className="py-3 text-slate-600">{evt.vehicle_id}</td>
-                    <td className="py-3 font-bold text-slate-900">{Math.round(evt.confidence * 100)}%</td>
+                    <td className="py-3 font-bold text-slate-900">
+                      {evt.isSimulated ? (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                          Simulated
+                        </span>
+                      ) : (
+                        `${Math.round(evt.confidence * 100)}%`
+                      )}
+                    </td>
                     <td className="py-3 pr-2">
                       <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
                         Dispatched

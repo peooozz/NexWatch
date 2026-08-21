@@ -5,8 +5,8 @@ Optimized specifically for Cloud deployments (Render / AWS / GCP) & Mobile Phone
   1. Uses Lightweight YOLOv11 (Nano/Small) for fast CPU inference.
   2. Background Stream Thread: Ingests directly from active_stream_url (Local Wi-Fi, 5G IPv6, or Ngrok).
   3. Frame Sampling: Ingestion loop processes every 3rd or 5th frame (~5-10 FPS) to prevent CPU starvation.
-  4. Real-Time Detection: Returns bounding boxes, track IDs, speed estimations, and traffic safety flags.
-  5. Incident Queue: Dispatches contraflow, speeding, and helmet events.
+  4. Homography & Wrong-Way v2: Physical ground-plane calibration for real speed and contraflow detection.
+  5. Incident Queue: Dispatches contraflow, speeding, and safety events.
 """
 
 import os
@@ -19,9 +19,11 @@ import numpy as np
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from collections import defaultdict, deque
+from shapely.geometry import Polygon
 from ultralytics import YOLO
 
 from backend.config import settings
+from scripts.live_event_detector import Homography, LaneZone, WrongWayDetector
 
 logger = logging.getLogger("NexWatchMobileDetector")
 
@@ -48,7 +50,7 @@ class MobileLiveDetector:
         self.model_name = model_name or settings.LIVE_MODEL_NAME
         self.sample_rate = sample_rate or settings.FRAME_SAMPLE_RATE
         self.model: Optional[YOLO] = None
-        self.trajectories: Dict[int, deque] = defaultdict(lambda: deque(maxlen=20))
+        self.trajectories: Dict[int, deque] = defaultdict(lambda: deque(maxlen=25))
         self.frame_counter: int = 0
         self.active_stream_url: str = settings.MOBILE_STREAM_URL
         self._last_detections: List[Dict[str, Any]] = []
@@ -57,6 +59,33 @@ class MobileLiveDetector:
         self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
         self.last_infer_latency: float = 18.0
+
+        # Physical Ground-Plane Homography & Contraflow Engine
+        self.homography: Optional[Homography] = None
+        self.wrong_way_detector: Optional[WrongWayDetector] = None
+
+    def calibrate(
+        self,
+        src_pts: List[List[float]],
+        dst_pts: List[List[float]],
+        flow_vector: List[float],
+        fps: float = 10.0,
+    ):
+        """
+        Calibrates the perspective transform for a live phone/IP stream.
+        Called once via /api/live/calibrate after operator defines 4 road points and world dimensions.
+        """
+        h = Homography(np.array(src_pts, dtype=np.float32), np.array(dst_pts, dtype=np.float32))
+        max_x = max(p[0] for p in dst_pts)
+        max_y = max(p[1] for p in dst_pts)
+        zone = LaneZone(
+            name="mobile_calibrated_corridor",
+            polygon_world=Polygon([(0, 0), (max_x, 0), (max_x, max_y), (0, max_y)]),
+            flow_vector=np.array(flow_vector, dtype=np.float32),
+        )
+        self.homography = h
+        self.wrong_way_detector = WrongWayDetector(h, [zone], fps=fps)
+        logger.info("Mobile live stream homography and lane corridor calibrated successfully.")
 
     def load_model(self):
         if self.model is None:
@@ -153,6 +182,7 @@ class MobileLiveDetector:
                 "frame_idx": self.frame_counter,
                 "sample_rate": self.sample_rate,
                 "latency_ms": self.last_infer_latency,
+                "calibrated": self.homography is not None,
                 "detections": self._last_detections,
             }
 
@@ -197,30 +227,43 @@ class MobileLiveDetector:
                 cy = (y1 + y2) / 2.0
 
                 self.trajectories[track_id].append((cx, cy))
-                traj = self.trajectories[track_id]
 
-                # Approximate speed & heading
                 speed_kmh = 0.0
                 tags = []
                 is_incident = False
 
-                if len(traj) >= 3:
-                    dx = traj[-1][0] - traj[0][0]
-                    dy = traj[-1][1] - traj[0][1]
-                    pixel_speed = float(np.hypot(dx, dy)) / len(traj)
-                    speed_kmh = round(max(5.0, pixel_speed * 4.5), 1)
+                # Ground-Plane Calibrated Physics or Uncalibrated Tag
+                if self.wrong_way_detector and self.homography:
+                    alert = self.wrong_way_detector.update(
+                        track_id=str(track_id),
+                        px=cx,
+                        py=cy,
+                        vehicle_class=cls_name,
+                        frame_idx=self.frame_counter,
+                    )
+                    state = self.wrong_way_detector.tracks.get(str(track_id))
+                    speed_kmh = (
+                        round(
+                            self.wrong_way_detector._speed_kmh(
+                                state.world_history, state.frame_history
+                            ),
+                            1,
+                        )
+                        if state
+                        else 0.0
+                    )
 
-                    # Contraflow / Wrong Way Check
-                    if dy < -12 and cy > 250:
+                    if state and state.alerted:
                         tags.append("🚨 CONTRAFLOW")
                         is_incident = True
                         self._log_incident("wrong_way", track_id, cls_name, speed_kmh, conf)
 
-                    # Speed Violation
-                    if speed_kmh > 60:
+                    if speed_kmh > 60.0:
                         tags.append(f"⚡ SPEEDING ({speed_kmh} km/h)")
                         is_incident = True
                         self._log_incident("speed_violation", track_id, cls_name, speed_kmh, conf)
+                else:
+                    tags.append("⚙ UNCALIBRATED — calibrate for speed/contraflow")
 
                 if cls_name == "motorcycle":
                     tags.append("🏍️ TWO-WHEELER")
@@ -254,6 +297,7 @@ class MobileLiveDetector:
             "frame_idx": self.frame_counter,
             "sample_rate": self.sample_rate,
             "latency_ms": infer_latency_ms,
+            "calibrated": self.homography is not None,
             "detections": detections,
         }
 
@@ -281,6 +325,7 @@ class MobileLiveDetector:
                 "success": True,
                 "frame_counter": self.frame_counter,
                 "latency_ms": self.last_infer_latency,
+                "calibrated": self.homography is not None,
                 "detections": list(self._last_detections),
                 "events": list(self._recent_events),
                 "stream_active": self._is_running,

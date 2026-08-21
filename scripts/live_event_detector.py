@@ -26,11 +26,20 @@ import sys
 import time
 import json
 import logging
+import asyncio
 from datetime import datetime
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
+
+# Ensure root workspace path is accessible for backend imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+try:
+    from backend.services.event_bus import event_bus
+except ImportError:
+    event_bus = None
 
 import cv2
 import numpy as np
@@ -39,10 +48,19 @@ from shapely.geometry import Point, Polygon
 # Configure Structured Logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] [CCTV: %(camera_name)s] [%(event_type)s] %(message)s",
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("NexWatchDetector")
+
+
+def collision_confidence(iou: float, delta_v_kmh: float) -> float:
+    """Maps the two physical signals that drove the trigger into a bounded,
+    monotonic confidence score — replaces arbitrary hardcoded 1.00."""
+    iou_term = min(1.0, iou / 0.5)          # saturates once IoU is well past threshold
+    dv_term = min(1.0, delta_v_kmh / 40.0)  # saturates at a clearly severe impact
+    return round(0.5 + 0.5 * (0.5 * iou_term + 0.5 * dv_term), 2)
+
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -341,6 +359,14 @@ class EventDetectorEngine:
         with open(self.event_log_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(event_record) + "\n")
 
+        # Push to the live broadcast bus if an event loop is running and event_bus is active
+        if event_bus is not None:
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(event_bus.publish(event_record))
+            except RuntimeError:
+                pass  # sync context (e.g. batch script) — file log is enough
+
         extra = {"camera_name": cam_name, "event_type": event_type.upper()}
         logger.info(
             f"EVENT CONFIRMED: {event_type} | Target: {details.get('track_id')} | "
@@ -438,6 +464,7 @@ class EventDetectorEngine:
     # 5. Accident / Collision Detector
     def detect_collision(self, camera_id: str, track1_id: str, track2_id: str, iou: float, delta_v: float, plate1: str, plate2: str):
         if iou > 0.20 and delta_v > 15.0:
+            conf = collision_confidence(iou, delta_v)
             return self.log_event(
                 camera_id,
                 "ACCIDENT_COLLISION",
@@ -446,10 +473,10 @@ class EventDetectorEngine:
                     "track_id": f"{track1_id} x {track2_id}",
                     "vehicle_class": "Auto Rickshaw / Car",
                     "license_plate": f"{plate1} & {plate2}",
-                    "confidence": 1.00,
+                    "confidence": conf,
                     "delta_velocity_kmh": delta_v,
                     "impact_vector": [370, 180],
-                    "description": "💥 100% CONFIRMED HIGH-IMPACT VEHICLE COLLISION - DISPATCH EMERGENCY MEDICAL SERVICES"
+                    "description": f"💥 HIGH-IMPACT VEHICLE COLLISION ({int(conf*100)}% Conf, Δv: {delta_v:.1f} km/h) - DISPATCH EMS"
                 }
             )
 

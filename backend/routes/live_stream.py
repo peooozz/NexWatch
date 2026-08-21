@@ -26,6 +26,25 @@ class StreamConfigUpdate(BaseModel):
     stream_url: Optional[str] = None
     sample_rate: Optional[int] = 3
 
+class CalibrationRequest(BaseModel):
+    src_points: list[list[float]]   # 4 pixel points (x, y) tapped on the live view
+    dst_points: list[list[float]]   # 4 matching real-world ground-plane meters
+    flow_vector: list[float]        # authorized travel direction unit vector [dx, dy]
+    fps: Optional[float] = 10.0
+
+@router.post("/calibrate")
+def calibrate_mobile_stream(payload: CalibrationRequest):
+    """Calibrates ground-plane homography transform for metric speed and contraflow detection."""
+    try:
+        mobile_live_detector.calibrate(
+            payload.src_points, payload.dst_points, payload.flow_vector, payload.fps or 10.0
+        )
+        return {"success": True, "message": "Ground-plane homography calibrated successfully."}
+    except Exception as e:
+        logger.error(f"Calibration failed: {e}")
+        raise HTTPException(status_code=400, detail=f"Calibration error: {e}")
+
+
 @router.get("/status")
 def get_live_detector_status():
     """Returns the current configuration of the lightweight mobile live detector."""

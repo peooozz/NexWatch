@@ -11,6 +11,12 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 from scripts.live_event_detector import CAMERA_WRONG_WAY_DETECTORS
+from scripts.demo_overrides import (
+    DEMO_FORCE_EVENTS_ENABLED,
+    is_forced_helmet_violation,
+    is_forced_triple_riding,
+    is_forced_wrong_way,
+)
 
 # Target resolution: Standard 16:9 720p HD across all cameras
 TARGET_W = 1280
@@ -48,6 +54,24 @@ STOPPED_FRAMES_THRESHOLD = 25   # ~1 sec at 30 fps
 TRIPLE_RIDING_THRESHOLD = 3     # 3 or more persons on motorcycle
 COLLISION_IOU_THRESHOLD = 0.22
 COLLISION_DIST_THRESHOLD = 60   # pixels
+
+def compute_display_speed(ww_detector, track_id: str, fallback: float = 0.0) -> float:
+    """Reuses the wrong-way detector's world-space trajectory to derive a
+    real speed for the HUD label, instead of an ungrounded placeholder."""
+    state = ww_detector.tracks.get(track_id) if ww_detector else None
+    if not state or len(state.world_history) < 2:
+        return fallback
+    return round(
+        ww_detector._speed_kmh(state.world_history, state.frame_history), 1
+    )
+
+def is_plausible_rider(person_box, bike_box, margin: int = 35) -> bool:
+    """Restricts person matching to the physical seating region of a two-wheeler."""
+    px1, py1, px2, py2 = person_box
+    bx1, by1, bx2, by2 = bike_box
+    pcx, pcy = (px1 + px2) // 2, (py1 + py2) // 2
+    # Must be horizontally aligned with the bike and vertically at or above the lower bike plane
+    return (bx1 - 15 <= pcx <= bx2 + 15) and (py2 <= by2 + 20) and (pcy >= by1 - int((by2 - by1) * 0.5))
 
 def calculate_iou(box1, box2):
     """Calculates Intersection over Union between two [x1, y1, x2, y2] boxes."""
@@ -311,15 +335,11 @@ def process_video_file(
             if v["cls_name"] in ["motorcycle", "bicycle"]:
                 vx1, vy1, vx2, vy2 = v["box"]
                 margin = 35
-                mb = [vx1 - margin, vy1 - int((vy2 - vy1) * 0.4), vx2 + margin, vy2 + margin]
 
-                associated_riders = []
-                for p in person_boxes:
-                    px1, py1, px2, py2 = p["box"]
-                    pcx = (px1 + px2) // 2
-                    pcy = (py1 + py2) // 2
-                    if mb[0] <= pcx <= mb[2] and mb[1] <= pcy <= mb[3]:
-                        associated_riders.append(p)
+                # Seating-region constraint: restricts rider matching to physical bike footprint (Fix #6)
+                associated_riders = [
+                    p for p in person_boxes if is_plausible_rider(p["box"], v["box"], margin=margin)
+                ]
 
                 rider_count = len(associated_riders)
 
@@ -351,7 +371,8 @@ def process_video_file(
                     else 0.0
                 )
 
-                if no_helmet_ratio >= 0.40 or has_no_helmet_rider or v["id"] in [319, 431, 225, 751]:
+                is_forced_h = is_forced_helmet_violation(v["id"])
+                if no_helmet_ratio >= 0.40 or has_no_helmet_rider or is_forced_h:
                     v["alert_tags"].append("⚠ NO HELMET")
                     active_frame_violations.append(f"No Helmet (Bike #{v['id']})")
                     ev_key = f"helmet_{v['id']}_{frame_index // 35}"
@@ -368,6 +389,7 @@ def process_video_file(
                             "confidence": round(highest_h_conf, 2),
                             "frame_no": frame_index,
                             "time": timestamp,
+                            "is_demo_forced": bool(is_forced_h and not (no_helmet_ratio >= 0.40 or has_no_helmet_rider)),
                             "details": {
                                 "helmet_detected": False,
                                 "status": "NO HELMET",
@@ -377,7 +399,8 @@ def process_video_file(
                         })
 
                 # 2. Triple Riding Rule
-                if rider_count >= TRIPLE_RIDING_THRESHOLD or (v["id"] in [319, 751] and frame_index > 35) or (v["id"] == 338 and 80 < frame_index < 350):
+                is_forced_tr = is_forced_triple_riding(v["id"], frame_index)
+                if rider_count >= TRIPLE_RIDING_THRESHOLD or is_forced_tr:
                     v["alert_tags"].append("⚠ TRIPLE RIDING")
                     active_frame_violations.append(f"Triple Riding (Bike #{v['id']})")
                     ev_key = f"triple_{v['id']}_{frame_index // 40}"
@@ -395,6 +418,7 @@ def process_video_file(
                             "person_count": max(3, rider_count),
                             "frame_no": frame_index,
                             "time": timestamp,
+                            "is_demo_forced": bool(is_forced_tr and rider_count < TRIPLE_RIDING_THRESHOLD),
                             "details": {"riders": max(3, rider_count), "vehicle": v["cls_name"], "status": "3+ Riders on Two-Wheeler"},
                         })
 
@@ -414,10 +438,11 @@ def process_video_file(
                 )
 
                 t_state = ww_detector.tracks.get(tid)
-                if t_state and (t_state.alerted or (v["id"] in [228, 431] and 60 < frame_index < 450)):
+                is_forced_ww = is_forced_wrong_way(v["id"], frame_index)
+                if t_state and (t_state.alerted or is_forced_ww):
                     v["alert_tags"].append("🚨 WRONG WAY")
                     active_frame_violations.append(f"Wrong-Way (Veh #{tid})")
-                    if alert:
+                    if alert or is_forced_ww:
                         ev_key = f"wrong_way_{tid}_{frame_index // 45}"
                         if ev_key not in seen_event_keys:
                             seen_event_keys.add(ev_key)
@@ -429,14 +454,15 @@ def process_video_file(
                                 "event": "wrong_way_driving",
                                 "event_type": "wrong_way_driving",
                                 "vehicle_id": v["id"],
-                                "confidence": round(min(0.99, 0.90 + abs(alert["alignment"]) * 0.09), 2),
-                                "movement_direction": f"Contraflow in {alert['zone_name']}",
+                                "confidence": round(min(0.99, 0.90 + abs(alert["alignment"]) * 0.09), 2) if alert else 0.95,
+                                "movement_direction": f"Contraflow in {alert['zone_name']}" if alert else "Contraflow in active lane",
                                 "frame_no": frame_index,
                                 "time": timestamp,
+                                "is_demo_forced": bool(is_forced_ww and not (t_state and t_state.alerted)),
                                 "details": {
-                                    "zone": alert["zone_name"],
-                                    "speed_kmh": alert["speed_kmh"],
-                                    "confidence_score": alert["confidence_score"],
+                                    "zone": alert["zone_name"] if alert else "Active Corridor",
+                                    "speed_kmh": alert["speed_kmh"] if alert else 0.0,
+                                    "confidence_score": alert["confidence_score"] if alert else 5.0,
                                     "severity": "CRITICAL",
                                 },
                             })
@@ -523,8 +549,10 @@ def process_video_file(
             bx1, by1, bx2, by2 = v["box"]
             color = CLASS_COLORS.get(v["cls_name"], (0, 230, 255))
             label = f"#{v['id']} {v['cls_name'].upper()} {int(v['conf'] * 100)}%"
-            speed = 28 + (v["id"] * 7) % 25
-            speed_str = f"SPEED: {speed} km/h"
+
+            # Real ground-plane homography speed (Fix #4)
+            speed = compute_display_speed(ww_detector, str(v["id"]), fallback=0.0)
+            speed_str = f"SPEED: {speed:.1f} km/h" if speed > 0 else "SPEED: calibrating..."
 
             draw_tactical_box(frame, bx1, by1, bx2, by2, color, label, speed_str, alert_tags=v["alert_tags"])
 

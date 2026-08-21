@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     TWILIO_WHATSAPP_TO: str = os.getenv("TWILIO_WHATSAPP_TO", "+919322166721")
     TWILIO_AUTO_DISPATCH: bool = os.getenv("TWILIO_AUTO_DISPATCH", "true").lower() in ["1", "true", "yes"]
 
+    # Demo simulation toggle (default False — real EventBus detection stream only)
+    DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in ["1", "true", "yes"]
+
     # Render / Ngrok Mobile Live Stream Configuration (Dedicated to /dashboard/events)
     MOBILE_STREAM_URL: str = os.getenv("MOBILE_STREAM_URL", os.getenv("NGROK_STREAM_URL", ""))
     FRAME_SAMPLE_RATE: int = int(os.getenv("FRAME_SAMPLE_RATE", "3"))  # Process every 3rd frame (~8-10 FPS)
