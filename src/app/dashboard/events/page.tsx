@@ -321,7 +321,7 @@ export default function LiveStreamPage() {
       severity: AlertSeverity = "high"
     ) => {
       const timeStr = new Date().toLocaleTimeString("en-IN", { hour12: false });
-      const eventId = `EVT-${Date.now().toString().slice(-5)}`;
+      const eventId = `EVT-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
       // 1. Local Security Event
       const newEvt: SecurityEvent = {
@@ -341,7 +341,7 @@ export default function LiveStreamPage() {
         },
       };
 
-      setEventsList((prev) => [newEvt, ...prev.slice(0, 40)]);
+      setEventsList((prev) => [newEvt, ...prev.filter((p) => p.id !== eventId).slice(0, 40)]);
 
       // 2. Global Alert Store (Syncs with Surveillance, WhatsApp, Analytics)
       const globalAlert: Alert = {
@@ -1010,10 +1010,10 @@ export default function LiveStreamPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
-              {filteredEvents.map((evt) => {
+              {filteredEvents.map((evt, idx) => {
                 const isCritical = evt.event === "accident_collision" || evt.event.includes("collision");
                 return (
-                  <tr key={evt.id} className="hover:bg-slate-50/80 transition-colors">
+                  <tr key={`${evt.id || "evt"}-${idx}`} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-3 pl-2 font-bold text-slate-900">{evt.id}</td>
                     <td className="py-3 text-slate-500">{evt.timestamp}</td>
                     <td className="py-3 text-slate-700">{evt.camera_name}</td>

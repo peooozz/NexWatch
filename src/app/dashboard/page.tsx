@@ -826,7 +826,7 @@ function LiveAlertFeed({ onManualWhatsApp }: { onManualWhatsApp?: () => void }) 
             </div>
           ) : (
             filteredAlerts.slice(0, 35).map((alert, i) => (
-              <AlertCard key={alert.id} alert={alert} isNew={i === 0} />
+              <AlertCard key={`${alert.id}-${i}`} alert={alert} isNew={i === 0} />
             ))
           )}
         </AnimatePresence>

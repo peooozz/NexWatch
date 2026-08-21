@@ -53,7 +53,13 @@ interface DashboardState {
 export const useDashboardStore = create<DashboardState>((set) => ({
   alerts: generateSeedAlerts(28),
   addAlert: (alert) =>
-    set((s) => ({ alerts: [alert, ...s.alerts] })),
+    set((s) => {
+      const safeId = alert.id || `EVT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+      const safeAlert = { ...alert, id: safeId };
+      return {
+        alerts: [safeAlert, ...s.alerts.filter((a) => a.id !== safeAlert.id)].slice(0, 100),
+      };
+    }),
   updateAlertStatus: (id, status, by) =>
     set((s) => ({
       alerts: s.alerts.map((a) =>
