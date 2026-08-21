@@ -50,3 +50,4 @@ venv/
 .venv/
 env/
 *.pt
+*.log
