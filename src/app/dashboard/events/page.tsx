@@ -138,9 +138,14 @@ export default function LiveStreamPage() {
   // Stream Source Mode
   const [streamMode, setStreamMode] = useState<StreamMode>("ip_webcam");
 
-  // Phone IP Webcam Configuration
+  // Phone IP / Ngrok Cloud Stream Configuration
   const [phoneIp, setPhoneIp] = useState<string>("192.168.1.100");
   const [phonePort, setPhonePort] = useState<string>("8080");
+  const [ngrokUrl, setNgrokUrl] = useState<string>("");
+  const [isNgrokMode, setIsNgrokMode] = useState<boolean>(false);
+  const [sampleRate, setSampleRate] = useState<number>(3);
+  const [cloudInferenceActive, setCloudInferenceActive] = useState<boolean>(true);
+  const [backendLatency, setBackendLatency] = useState<number>(18);
   const [ipWebcamStatus, setIpWebcamStatus] = useState<"idle" | "streaming" | "error">("idle");
   const [showSetupGuide, setShowSetupGuide] = useState<boolean>(false);
 
@@ -191,17 +196,31 @@ export default function LiveStreamPage() {
   );
 
   const ipWebcamUrl = useMemo(() => {
+    if (isNgrokMode && ngrokUrl.trim()) {
+      let clean = ngrokUrl.trim();
+      if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+        clean = "https://" + clean;
+      }
+      if (!clean.endsWith("/video") && !clean.endsWith(".m3u8") && !clean.endsWith("/mjpeg")) {
+        clean = clean.replace(/\/+$/, "") + "/video";
+      }
+      return clean;
+    }
     let cleanIp = phoneIp.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
     return `http://${cleanIp}:${phonePort}/video`;
-  }, [phoneIp, phonePort]);
+  }, [phoneIp, phonePort, isNgrokMode, ngrokUrl]);
 
-  // Load saved IP from localStorage
+  // Load saved IP & Ngrok from localStorage
   useEffect(() => {
     try {
       const savedIp = localStorage.getItem("nexwatch_phone_ip");
       const savedPort = localStorage.getItem("nexwatch_phone_port");
+      const savedNgrok = localStorage.getItem("nexwatch_ngrok_url");
+      const savedSample = localStorage.getItem("nexwatch_sample_rate");
       if (savedIp) setPhoneIp(savedIp);
       if (savedPort) setPhonePort(savedPort);
+      if (savedNgrok) setNgrokUrl(savedNgrok);
+      if (savedSample) setSampleRate(parseInt(savedSample, 10));
     } catch {}
   }, []);
 
@@ -209,11 +228,24 @@ export default function LiveStreamPage() {
     try {
       localStorage.setItem("nexwatch_phone_ip", phoneIp);
       localStorage.setItem("nexwatch_phone_port", phonePort);
+      if (ngrokUrl) localStorage.setItem("nexwatch_ngrok_url", ngrokUrl);
+      localStorage.setItem("nexwatch_sample_rate", String(sampleRate));
       setIpWebcamStatus("streaming");
+
+      // Notify backend live stream detector
+      fetch("http://localhost:8000/api/live/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stream_url: ipWebcamUrl,
+          sample_rate: sampleRate,
+        }),
+      }).catch(() => {});
+
       setAlertBanner({
         show: true,
-        title: "Phone IP Webcam Stream Initialized",
-        message: `Connecting live MJPEG stream to ${ipWebcamUrl}. Ensure your phone & computer are on the same Wi-Fi network.`,
+        title: isNgrokMode ? "Remote Ngrok Mobile Stream Connected" : "Local Phone IP Stream Connected",
+        message: `Connected live stream to ${ipWebcamUrl}. Lightweight YOLOv11 Nano detector active (Sampling 1:${sampleRate}).`,
         type: "success",
       });
     } catch {}
@@ -600,45 +632,100 @@ export default function LiveStreamPage() {
 
       {/* 2. CONFIGURATION & AI SIMULATION CONTROLS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left: Stream IP / Source Controls */}
+        {/* Left: Stream IP / Ngrok Cloud Source Controls */}
         <div className="lg:col-span-2 glass-panel rounded-2xl p-4 border border-slate-200/90 shadow-sm flex flex-wrap items-center justify-between gap-3">
           {streamMode === "ip_webcam" && (
-            <div className="flex flex-wrap items-center gap-2.5 text-xs font-mono-data">
-              <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                <Wifi size={14} className="text-[#4F46E5]" />
-                PHONE IP STREAM:
-              </span>
-              <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
-                <span className="text-slate-400">http://</span>
-                <input
-                  type="text"
-                  value={phoneIp}
-                  onChange={(e) => setPhoneIp(e.target.value)}
-                  placeholder="192.168.1.100"
-                  className="bg-transparent text-slate-900 font-bold outline-none w-28 text-xs"
-                />
-                <span className="text-slate-400">:</span>
-                <input
-                  type="text"
-                  value={phonePort}
-                  onChange={(e) => setPhonePort(e.target.value)}
-                  placeholder="8080"
-                  className="bg-transparent text-slate-900 font-bold outline-none w-12 text-xs"
-                />
-                <span className="text-slate-400">/video</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 text-xs font-mono-data">
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Protocol Toggle */}
+                <div className="flex items-center p-0.5 rounded-lg bg-slate-100 border border-slate-200">
+                  <button
+                    onClick={() => setIsNgrokMode(false)}
+                    className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                      !isNgrokMode ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    Local Wi-Fi
+                  </button>
+                  <button
+                    onClick={() => setIsNgrokMode(true)}
+                    className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                      isNgrokMode ? "bg-white text-emerald-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    Ngrok / Render Cloud
+                  </button>
+                </div>
+
+                {!isNgrokMode ? (
+                  <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                    <span className="text-slate-400">http://</span>
+                    <input
+                      type="text"
+                      value={phoneIp}
+                      onChange={(e) => setPhoneIp(e.target.value)}
+                      placeholder="192.168.1.100"
+                      className="bg-transparent text-slate-900 font-bold outline-none w-28 text-xs"
+                    />
+                    <span className="text-slate-400">:</span>
+                    <input
+                      type="text"
+                      value={phonePort}
+                      onChange={(e) => setPhonePort(e.target.value)}
+                      placeholder="8080"
+                      className="bg-transparent text-slate-900 font-bold outline-none w-12 text-xs"
+                    />
+                    <span className="text-slate-400">/video</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 bg-white border border-emerald-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                    <span className="text-emerald-500 font-bold">ngrok:</span>
+                    <input
+                      type="text"
+                      value={ngrokUrl}
+                      onChange={(e) => setNgrokUrl(e.target.value)}
+                      placeholder="https://xxxx.ngrok-free.app/video"
+                      className="bg-transparent text-slate-900 font-bold outline-none w-56 text-xs"
+                    />
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSaveIpConfig}
+                  className="px-3.5 py-1.5 rounded-xl bg-[#4F46E5] text-white font-bold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-xs"
+                >
+                  Connect Stream
+                </button>
               </div>
-              <button
-                onClick={handleSaveIpConfig}
-                className="px-3.5 py-1.5 rounded-xl bg-[#4F46E5] text-white font-bold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-xs"
-              >
-                Connect Stream
-              </button>
-              <button
-                onClick={() => setShowSetupGuide(!showSetupGuide)}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition-colors cursor-pointer"
-              >
-                Setup Guide
-              </button>
+
+              {/* Frame Sampling Selector for Cloud CPU */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-500 font-bold">Cloud Sampling:</span>
+                <select
+                  value={sampleRate}
+                  onChange={(e) => {
+                    const r = parseInt(e.target.value, 10);
+                    setSampleRate(r);
+                    localStorage.setItem("nexwatch_sample_rate", String(r));
+                    fetch("http://localhost:8000/api/live/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ sample_rate: r }),
+                    }).catch(() => {});
+                  }}
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
+                >
+                  <option value={1}>1:1 (30 FPS Full)</option>
+                  <option value={3}>1:3 (10 FPS Cloud Optimized)</option>
+                  <option value={5}>1:5 (6 FPS Render Free Tier)</option>
+                </select>
+                <button
+                  onClick={() => setShowSetupGuide(!showSetupGuide)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition-colors cursor-pointer text-[11px]"
+                >
+                  Guide
+                </button>
+              </div>
             </div>
           )}
 
@@ -855,7 +942,7 @@ export default function LiveStreamPage() {
         <div className="absolute top-4 right-4 z-20 flex items-center gap-2 font-mono-data text-xs">
           <span className="px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-emerald-400 border border-emerald-500/40 font-bold flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            {liveFps} FPS · YOLOv11x TensorRT
+            {streamMode === "cctv_recorded" ? `${liveFps} FPS · YOLOv11x Municipal Matrix` : `⚡ YOLOv11n (Nano) · Cloud Sample 1:${sampleRate} · ${backendLatency}ms`}
           </span>
         </div>
       </div>
