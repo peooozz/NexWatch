@@ -221,7 +221,7 @@ export default function LiveStreamPage() {
       if (savedPort) setPhonePort(savedPort);
       if (savedNgrok) setNgrokUrl(savedNgrok);
       if (savedSample) setSampleRate(parseInt(savedSample, 10));
-    } catch {}
+    } catch { }
   }, []);
 
   const handleSaveIpConfig = () => {
@@ -240,7 +240,7 @@ export default function LiveStreamPage() {
           stream_url: ipWebcamUrl,
           sample_rate: sampleRate,
         }),
-      }).catch(() => {});
+      }).catch(() => { });
 
       setAlertBanner({
         show: true,
@@ -248,7 +248,7 @@ export default function LiveStreamPage() {
         message: `Connected live stream to ${ipWebcamUrl}. Lightweight YOLOv11 Nano detector active (Sampling 1:${sampleRate}).`,
         type: "success",
       });
-    } catch {}
+    } catch { }
   };
 
   // Device Camera WebRTC
@@ -594,11 +594,10 @@ export default function LiveStreamPage() {
         <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200 shadow-inner">
           <button
             onClick={() => setStreamMode("ip_webcam")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${
-              streamMode === "ip_webcam"
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${streamMode === "ip_webcam"
                 ? "bg-white text-[#4F46E5] shadow-xs border border-slate-200"
                 : "text-slate-600 hover:text-slate-900"
-            }`}
+              }`}
           >
             <Smartphone size={13} />
             Mobile IP Camera
@@ -606,11 +605,10 @@ export default function LiveStreamPage() {
 
           <button
             onClick={() => setStreamMode("device_cam")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${
-              streamMode === "device_cam"
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${streamMode === "device_cam"
                 ? "bg-white text-emerald-700 shadow-xs border border-slate-200"
                 : "text-slate-600 hover:text-slate-900"
-            }`}
+              }`}
           >
             <CameraIcon size={13} />
             Device WebCam
@@ -618,11 +616,10 @@ export default function LiveStreamPage() {
 
           <button
             onClick={() => setStreamMode("cctv_recorded")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${
-              streamMode === "cctv_recorded"
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${streamMode === "cctv_recorded"
                 ? "bg-white text-indigo-700 shadow-xs border border-slate-200"
                 : "text-slate-600 hover:text-slate-900"
-            }`}
+              }`}
           >
             <Video size={13} />
             CCTV Municipal Grid
@@ -641,17 +638,15 @@ export default function LiveStreamPage() {
                 <div className="flex items-center p-0.5 rounded-lg bg-slate-100 border border-slate-200">
                   <button
                     onClick={() => setIsNgrokMode(false)}
-                    className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                      !isNgrokMode ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
-                    }`}
+                    className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${!isNgrokMode ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                      }`}
                   >
                     Local Wi-Fi
                   </button>
                   <button
                     onClick={() => setIsNgrokMode(true)}
-                    className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                      isNgrokMode ? "bg-white text-emerald-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
-                    }`}
+                    className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${isNgrokMode ? "bg-white text-emerald-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                      }`}
                   >
                     Ngrok / Render Cloud
                   </button>
@@ -711,7 +706,7 @@ export default function LiveStreamPage() {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ sample_rate: r }),
-                    }).catch(() => {});
+                    }).catch(() => { });
                   }}
                   className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
                 >
@@ -753,11 +748,10 @@ export default function LiveStreamPage() {
                 <button
                   key={vid.id}
                   onClick={() => setSelectedVideoId(vid.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-mono-data font-bold transition-all cursor-pointer ${
-                    selectedVideoId === vid.id
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono-data font-bold transition-all cursor-pointer ${selectedVideoId === vid.id
                       ? "bg-[#4F46E5] text-white shadow-xs"
                       : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   {vid.id}: {vid.name.split(" ")[0]}
                 </button>
@@ -1023,11 +1017,10 @@ export default function LiveStreamPage() {
                     <td className="py-3 text-slate-700">{evt.camera_name}</td>
                     <td className="py-3">
                       <span
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                          isCritical
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${isCritical
                             ? "bg-rose-50 text-rose-700 border border-rose-200"
                             : "bg-amber-50 text-amber-700 border border-amber-200"
-                        }`}
+                          }`}
                       >
                         {evt.event_type}
                       </span>
