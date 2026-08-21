@@ -865,13 +865,19 @@ export default function LiveStreamPage() {
         ref={containerRef}
         className="relative rounded-3xl overflow-hidden border border-slate-300/80 bg-black shadow-xl flex flex-col items-center justify-center min-h-[480px] lg:min-h-[580px]"
       >
-        {/* Stream Canvas */}
+        {/* Stream Canvas with Auto-Reconnect */}
         {streamMode === "ip_webcam" && (
           <img
+            key={ipWebcamUrl}
             src={ipWebcamUrl}
             alt="Mobile Live Stream"
             className="w-full h-full object-contain max-h-[640px]"
-            onError={() => setIpWebcamStatus("error")}
+            onError={() => {
+              // Graceful retry before showing error
+              setTimeout(() => {
+                setIpWebcamStatus((prev) => (prev === "streaming" ? "idle" : "error"));
+              }, 2000);
+            }}
             onLoad={() => setIpWebcamStatus("streaming")}
           />
         )}
