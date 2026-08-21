@@ -654,45 +654,53 @@ export default function LiveStreamPage() {
                   </button>
                 </div>
 
-                {!isNgrokMode ? (
-                  <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
-                    <span className="text-slate-400">http://</span>
-                    <input
-                      type="text"
-                      value={phoneIp}
-                      onChange={(e) => setPhoneIp(e.target.value)}
-                      placeholder="192.168.1.100"
-                      className="bg-transparent text-slate-900 font-bold outline-none w-28 text-xs"
-                    />
-                    <span className="text-slate-400">:</span>
-                    <input
-                      type="text"
-                      value={phonePort}
-                      onChange={(e) => setPhonePort(e.target.value)}
-                      placeholder="8080"
-                      className="bg-transparent text-slate-900 font-bold outline-none w-12 text-xs"
-                    />
-                    <span className="text-slate-400">/video</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 bg-white border border-emerald-200 rounded-xl px-3 py-1.5 shadow-2xs">
-                    <span className="text-emerald-500 font-bold">ngrok:</span>
-                    <input
-                      type="text"
-                      value={ngrokUrl}
-                      onChange={(e) => setNgrokUrl(e.target.value)}
-                      placeholder="https://xxxx.ngrok-free.app/video"
-                      className="bg-transparent text-slate-900 font-bold outline-none w-56 text-xs"
-                    />
-                  </div>
-                )}
+                {/* Smart Universal Input Field */}
+                <div className="flex items-center gap-1.5 bg-white border border-indigo-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                  <Smartphone size={13} className="text-[#4F46E5]" />
+                  <input
+                    type="text"
+                    value={isNgrokMode ? ngrokUrl : phoneIp.includes(":") ? phoneIp : `${phoneIp}:${phonePort}`}
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      if (isNgrokMode) {
+                        setNgrokUrl(val);
+                      } else {
+                        // Smart auto-parse: strips http://, extracts IP and port
+                        const cleaned = val.replace(/^https?:\/\//i, "").replace(/\/video.*$/i, "").replace(/\/.*$/i, "");
+                        if (cleaned.includes(":")) {
+                          const parts = cleaned.split(":");
+                          setPhoneIp(parts[0]);
+                          setPhonePort(parts[1] || "8080");
+                        } else {
+                          setPhoneIp(cleaned);
+                        }
+                      }
+                    }}
+                    placeholder={isNgrokMode ? "https://xxxx.ngrok-free.app/video" : "10.168.222.244:8080 or http://..."}
+                    className="bg-transparent text-slate-900 font-bold outline-none w-56 sm:w-64 text-xs"
+                  />
+                </div>
 
                 <button
                   onClick={handleSaveIpConfig}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#4F46E5] text-white font-bold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-xs"
+                  className="px-4 py-1.5 rounded-xl bg-[#4F46E5] text-white font-bold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
                 >
-                  Connect Stream
+                  <span>Connect Stream</span>
                 </button>
+
+                {/* 1-Click Auto-Fill Detected Phone IP */}
+                {!isNgrokMode && (
+                  <button
+                    onClick={() => {
+                      setPhoneIp("10.168.222.244");
+                      setPhonePort("8080");
+                    }}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
+                    title="Fill from Phone Screen"
+                  >
+                    ⚡ Paste 10.168.222.244:8080
+                  </button>
+                )}
               </div>
 
               {/* Frame Sampling Selector for Cloud CPU */}
