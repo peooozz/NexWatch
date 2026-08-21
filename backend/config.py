@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # Render / Ngrok Mobile Live Stream Configuration (Dedicated to /dashboard/events)
     MOBILE_STREAM_URL: str = os.getenv("MOBILE_STREAM_URL", os.getenv("NGROK_STREAM_URL", ""))
     FRAME_SAMPLE_RATE: int = int(os.getenv("FRAME_SAMPLE_RATE", "3"))  # Process every 3rd frame (~8-10 FPS)
-    LIVE_MODEL_NAME: str = os.getenv("LIVE_MODEL_NAME", "yolo11n.pt")  # Lightweight Nano model for cloud CPU
+    LIVE_MODEL_NAME: str = os.getenv("LIVE_MODEL_NAME", "yolo11s.pt")  # High-accuracy Small model for cloud CPU
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

@@ -592,7 +592,7 @@ def process_video_file(
 if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
     os.makedirs("models", exist_ok=True)
-    model = YOLO("yolo11n.pt")
+    model = YOLO("yolo11s.pt")
 
     helmet_model = None
     if os.path.exists("models/helmet_model.pt"):
