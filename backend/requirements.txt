@@ -14,3 +14,4 @@ pandas>=2.2.0
 scipy>=1.10.0
 requests>=2.31.0
 twilio>=9.0.0
+shapely>=2.0.0
