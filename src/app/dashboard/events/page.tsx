@@ -34,6 +34,7 @@ import {
   ShieldAlert,
   Sliders,
   Sparkles,
+  ExternalLink,
 } from "lucide-react";
 import { useDashboardStore } from "@/lib/store";
 import { Alert, AlertEventType, AlertSeverity } from "@/lib/types";
@@ -42,7 +43,7 @@ import { getEventLabel } from "@/lib/mock-data";
 /* ═══════════════════════════════════════════════════════════════════════
    TYPES & DATA MODELS
    ═══════════════════════════════════════════════════════════════════════ */
-export type StreamMode = "ip_webcam" | "device_cam" | "cctv_recorded";
+export type StreamMode = "mobile_push" | "ip_webcam" | "device_cam" | "cctv_recorded";
 
 export interface DetectionItem {
   id: string | number;
@@ -149,7 +150,7 @@ export default function LiveStreamPage() {
   const addGlobalAlert = useDashboardStore((s) => s.addAlert);
 
   // Stream Source Mode
-  const [streamMode, setStreamMode] = useState<StreamMode>("ip_webcam");
+  const [streamMode, setStreamMode] = useState<StreamMode>("mobile_push");
 
   // Phone IP / Ngrok Cloud Stream Configuration
   const [cameraUrlInput, setCameraUrlInput] = useState<string>("10.168.222.244:8080");
@@ -471,8 +472,8 @@ export default function LiveStreamPage() {
       frameCount++;
       setLiveFps(parseFloat((29.4 + Math.random() * 1.2).toFixed(1)));
 
-      // Path A: IP Webcam Stream (Poll continuous backend detector)
-      if (streamMode === "ip_webcam") {
+      // Path A: Mobile Push & IP Webcam Stream (Poll continuous backend detector)
+      if (streamMode === "mobile_push" || streamMode === "ip_webcam") {
         try {
           inFlight = true;
           const res = await fetch(`${getBackendBaseUrl()}/api/live/detections`);
@@ -656,6 +657,17 @@ export default function LiveStreamPage() {
         {/* Source Switcher */}
         <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200 shadow-inner">
           <button
+            onClick={() => setStreamMode("mobile_push")}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${streamMode === "mobile_push"
+              ? "bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-xs"
+              : "text-slate-600 hover:text-slate-900"
+              }`}
+          >
+            <Radio size={13} className={streamMode === "mobile_push" ? "animate-pulse" : ""} />
+            📲 Mobile Push (CAM-MOBILE-01)
+          </button>
+
+          <button
             onClick={() => setStreamMode("ip_webcam")}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-data transition-all cursor-pointer ${streamMode === "ip_webcam"
               ? "bg-white text-[#4F46E5] shadow-xs border border-slate-200"
@@ -694,6 +706,50 @@ export default function LiveStreamPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left: Stream IP / Ngrok Cloud Source Controls */}
         <div className="lg:col-span-2 glass-panel rounded-2xl p-4 border border-slate-200/90 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          {streamMode === "mobile_push" && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 text-xs font-mono-data">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-900 font-bold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-ping" />
+                  <span>Push Stream Active: CAM-MOBILE-01</span>
+                </div>
+
+                <a
+                  href="/mobile-cam?cam_id=CAM-MOBILE-01&key=nexwatch-mobile-key-alpha"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-bold hover:brightness-110 transition-all cursor-pointer shadow-xs flex items-center gap-1.5 text-[11px]"
+                >
+                  <ExternalLink size={12} />
+                  <span>Open Mobile Cam Page</span>
+                </a>
+              </div>
+
+              {/* Frame Sampling Selector for Cloud CPU */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-500 font-bold">Cloud Sampling:</span>
+                <select
+                  value={sampleRate}
+                  onChange={(e) => {
+                    const r = parseInt(e.target.value, 10);
+                    setSampleRate(r);
+                    localStorage.setItem("nexwatch_sample_rate", String(r));
+                    fetch(`${getBackendBaseUrl()}/api/live/config`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ sample_rate: r }),
+                    }).catch(() => { });
+                  }}
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
+                >
+                  <option value={1}>1:1 (30 FPS Full)</option>
+                  <option value={3}>1:3 (10 FPS Cloud Optimized)</option>
+                  <option value={5}>1:5 (6 FPS Render Free Tier)</option>
+                </select>
+              </div>
+            </div>
+          )}
+
           {streamMode === "ip_webcam" && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 text-xs font-mono-data">
               <div className="flex flex-wrap items-center gap-2.5">
@@ -750,18 +806,6 @@ export default function LiveStreamPage() {
                   >
                     🌐 5G IPv6 ([2401:...])
                   </button>
-
-                  {/* Direct Mobile Push Stream Link */}
-                  <a
-                    href="/mobile-cam?cam_id=CAM-MOBILE-01&key=nexwatch-mobile-key-alpha"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-bold hover:brightness-110 transition-all cursor-pointer shadow-xs flex items-center gap-1.5 text-[11px]"
-                    title="Zero-Install Push Camera (No IP/Port Config Needed)"
-                  >
-                    <Radio size={12} className="animate-pulse" />
-                    <span>📲 Mobile Push Stream</span>
-                  </a>
                 </div>
               </div>
 
@@ -892,6 +936,16 @@ export default function LiveStreamPage() {
         className="relative rounded-3xl overflow-hidden border border-slate-300/80 bg-black shadow-xl flex flex-col items-center justify-center min-h-[480px] lg:min-h-[580px]"
       >
         {/* Stream Canvas */}
+        {streamMode === "mobile_push" && (
+          <img
+            src={`${getBackendBaseUrl()}/api/live/feed`}
+            alt="Mobile Push Live Stream"
+            className="w-full h-full object-contain max-h-[640px]"
+            onError={() => setIpWebcamStatus("error")}
+            onLoad={() => setIpWebcamStatus("streaming")}
+          />
+        )}
+
         {streamMode === "ip_webcam" && (
           <img
             src={ipWebcamUrl}
@@ -923,6 +977,33 @@ export default function LiveStreamPage() {
             onTimeUpdate={handleTimeUpdate}
             className="w-full h-full object-contain max-h-[640px]"
           />
+        )}
+
+        {/* Fallback Display for Mobile Push */}
+        {streamMode === "mobile_push" && ipWebcamStatus === "error" && (
+          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 text-white font-mono-data">
+            <Radio size={44} className="text-cyan-400 mb-3 animate-pulse" />
+            <h3 className="text-base font-bold text-white">Live Push Node Standby (CAM-MOBILE-01)</h3>
+            <p className="text-xs text-slate-300 max-w-md mt-1 mb-4 leading-relaxed">
+              Open the Mobile Node on your phone and tap <strong className="text-cyan-400">&quot;START TRANSMITTING&quot;</strong>. Live camera video and AI detections will feed directly into this screen.
+            </p>
+            <div className="flex items-center gap-3">
+              <a
+                href="/mobile-cam?cam_id=CAM-MOBILE-01&key=nexwatch-mobile-key-alpha"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-indigo-600 text-white flex items-center gap-2 cursor-pointer shadow-md hover:brightness-110"
+              >
+                <ExternalLink size={13} /> Launch Mobile Camera
+              </a>
+              <button
+                onClick={() => setIpWebcamStatus("streaming")}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw size={13} /> Re-check Stream
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Fallback Error Display */}

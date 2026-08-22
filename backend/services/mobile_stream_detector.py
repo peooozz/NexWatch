@@ -54,6 +54,7 @@ class MobileLiveDetector:
         self.frame_counter: int = 0
         self.active_stream_url: str = settings.MOBILE_STREAM_URL
         self._last_detections: List[Dict[str, Any]] = []
+        self._last_jpeg: Optional[bytes] = None
         self._recent_events: deque = deque(maxlen=100)
         self._is_running: bool = False
         self._thread: Optional[threading.Thread] = None
@@ -288,8 +289,13 @@ class MobileLiveDetector:
                     "isIncident": is_incident,
                 })
 
+        # Encode compressed JPEG for live streaming to frontend
+        ret, jpeg_buf = cv2.imencode('.jpg', infer_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+
         with self._lock:
             self._last_detections = detections
+            if ret:
+                self._last_jpeg = jpeg_buf.tobytes()
 
         return {
             "success": True,
@@ -328,8 +334,12 @@ class MobileLiveDetector:
                 "calibrated": self.homography is not None,
                 "detections": list(self._last_detections),
                 "events": list(self._recent_events),
-                "stream_active": self._is_running,
+                "stream_active": self._is_running or (self._last_jpeg is not None),
             }
+
+    def get_latest_jpeg(self) -> Optional[bytes]:
+        with self._lock:
+            return self._last_jpeg
 
 
 # Global singleton instance for the /dashboard/events route

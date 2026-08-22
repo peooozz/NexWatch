@@ -151,7 +151,7 @@ export default function MobileCamPage() {
       if (!canvas) return;
 
       if (isAwaitingAck.current) {
-        if (Date.now() - lastAckTime.current > 1500) {
+        if (Date.now() - lastAckTime.current > 3000) {
           isAwaitingAck.current = false;
         } else {
           return;

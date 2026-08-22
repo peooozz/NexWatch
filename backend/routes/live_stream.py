@@ -4,11 +4,13 @@ FastAPI Endpoints for Dedicated Mobile Phone / Ngrok Live Stream Detection
 Route Prefix: /api/live (used specifically by http://localhost:3000/dashboard/events)
 """
 
+import asyncio
 import json
 import logging
 from typing import Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.responses import StreamingResponse, Response
 
 from backend.config import settings
 from backend.services.mobile_stream_detector import mobile_live_detector
@@ -114,3 +116,25 @@ async def live_stream_websocket(websocket: WebSocket):
         logger.info("[LiveWS] Client disconnected from live stream WebSocket.")
     except Exception as e:
         logger.error(f"[LiveWS] Error: {e}")
+
+
+@router.get("/feed")
+async def get_live_mjpeg_feed():
+    """Serves continuous MJPEG stream of the active mobile push feed."""
+    async def frame_generator():
+        while True:
+            jpeg = mobile_live_detector.get_latest_jpeg()
+            if jpeg:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg + b'\r\n')
+            await asyncio.sleep(0.08)
+    return StreamingResponse(frame_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
+
+
+@router.get("/snapshot")
+def get_live_snapshot():
+    """Returns single latest JPEG snapshot from mobile stream."""
+    jpeg = mobile_live_detector.get_latest_jpeg()
+    if not jpeg:
+        raise HTTPException(status_code=404, detail="No active mobile push frame available yet")
+    return Response(content=jpeg, media_type="image/jpeg")

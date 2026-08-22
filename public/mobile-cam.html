@@ -617,8 +617,8 @@
 
         // Non-overlapping send loop: Skip frame if previous frame is still awaiting ACK / sending
         if (isAwaitingAck) {
-          // If ack timed out (> 1.5s), unblock pipeline
-          if (Date.now() - lastAckTime > 1500) {
+          // If ack timed out (> 3.0s), unblock pipeline
+          if (Date.now() - lastAckTime > 3000) {
             isAwaitingAck = false;
           } else {
             return;
