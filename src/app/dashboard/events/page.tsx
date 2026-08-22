@@ -738,6 +738,18 @@ export default function LiveStreamPage() {
                   >
                     🌐 5G IPv6 ([2401:...])
                   </button>
+
+                  {/* Direct Mobile Push Stream Link */}
+                  <a
+                    href="/mobile-cam?cam_id=CAM-MOBILE-01&key=nexwatch-mobile-key-alpha"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-bold hover:brightness-110 transition-all cursor-pointer shadow-xs flex items-center gap-1.5 text-[11px]"
+                    title="Zero-Install Push Camera (No IP/Port Config Needed)"
+                  >
+                    <Radio size={12} className="animate-pulse" />
+                    <span>📲 Mobile Push Stream</span>
+                  </a>
                 </div>
               </div>
 
