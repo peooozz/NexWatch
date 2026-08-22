@@ -133,6 +133,18 @@ const CLASS_COLORS: Record<string, { text: string; bg: string; border: string }>
   auto: { text: "#EF4444", bg: "rgba(239, 68, 68, 0.15)", border: "rgba(239, 68, 68, 0.8)" },
 };
 
+function getBackendBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    if (window.location.host.includes("-frontend.onrender.com")) {
+      return `https://${window.location.host.replace("-frontend.onrender.com", "-backend.onrender.com")}`;
+    }
+    if (window.location.port === "3000") {
+      return `${window.location.protocol}//${window.location.hostname}:8000`;
+    }
+  }
+  return "http://localhost:8000";
+}
+
 export default function LiveStreamPage() {
   const addGlobalAlert = useDashboardStore((s) => s.addAlert);
 
@@ -233,7 +245,7 @@ export default function LiveStreamPage() {
       setIpWebcamStatus("streaming");
 
       // Notify backend live stream detector
-      fetch("http://localhost:8000/api/live/config", {
+      fetch(`${getBackendBaseUrl()}/api/live/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -444,7 +456,7 @@ export default function LiveStreamPage() {
 
     // Sync stream URL with backend detector on mount or URL change
     if (streamMode === "ip_webcam" && ipWebcamUrl) {
-      fetch("http://localhost:8000/api/live/config", {
+      fetch(`${getBackendBaseUrl()}/api/live/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -463,7 +475,7 @@ export default function LiveStreamPage() {
       if (streamMode === "ip_webcam") {
         try {
           inFlight = true;
-          const res = await fetch("http://localhost:8000/api/live/detections");
+          const res = await fetch(`${getBackendBaseUrl()}/api/live/detections`);
           if (res.ok && isMounted) {
             const data = await res.json();
             if (data.latency_ms) setBackendLatency(Math.round(data.latency_ms));
@@ -511,7 +523,7 @@ export default function LiveStreamPage() {
             const b64 = offscreenCanvas.toDataURL("image/jpeg", 0.65);
 
             const t0 = performance.now();
-            const res = await fetch("http://localhost:8000/api/live/process-frame", {
+            const res = await fetch(`${getBackendBaseUrl()}/api/live/process-frame`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -762,7 +774,7 @@ export default function LiveStreamPage() {
                     const r = parseInt(e.target.value, 10);
                     setSampleRate(r);
                     localStorage.setItem("nexwatch_sample_rate", String(r));
-                    fetch("http://localhost:8000/api/live/config", {
+                    fetch(`${getBackendBaseUrl()}/api/live/config`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ sample_rate: r }),

@@ -74,8 +74,19 @@ export default function MobileCamPage() {
 
     let host = customHost.trim();
     if (!host) {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      host = `${protocol}//${window.location.host}`;
+      if (typeof window !== "undefined") {
+        if (window.location.host.includes("-frontend.onrender.com")) {
+          host = `wss://${window.location.host.replace("-frontend.onrender.com", "-backend.onrender.com")}`;
+        } else if (window.location.port === "3000") {
+          const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+          host = `${protocol}//${window.location.hostname}:8000`;
+        } else {
+          const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+          host = `${protocol}//${window.location.host}`;
+        }
+      } else {
+        host = "ws://127.0.0.1:8000";
+      }
     } else if (!host.startsWith("ws://") && !host.startsWith("wss://")) {
       host = (window.location.protocol === "https:" ? "wss://" : "ws://") + host;
     }
