@@ -55,21 +55,6 @@ export const cameras: Camera[] = [
     lensType: "Panoramic 180° Multi-sensor",
     sourceType: "cctv",
   },
-  {
-    id: "CAM-MOBILE-01",
-    name: "Mobile Rapid Deployment Unit",
-    zone: "Dynamic Patrol Perimeter",
-    location: { lat: 21.1385, lng: 79.0688 },
-    status: "offline",
-    fps: 10,
-    resolution: "640×480 (VGA)",
-    bitrate: "1.2 Mbps",
-    bearing: 0,
-    fovAngle: 75,
-    lensType: "Smartphone Ultra-Wide Lens",
-    sourceType: "mobile_push",
-    streamUrl: "/mobile-cam?cam_id=CAM-MOBILE-01",
-  },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────

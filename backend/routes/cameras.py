@@ -69,21 +69,6 @@ DEFAULT_CAMERAS = [
         "lens_type": "Panoramic 180° Multi-sensor",
         "stream_url": "/videos/cam4.mp4",
     },
-    {
-        "id": "CAM-MOBILE-01",
-        "name": "Mobile Rapid Deployment Unit",
-        "zone": "Dynamic Patrol Perimeter",
-        "location_lat": 21.1385,
-        "location_lng": 79.0688,
-        "status": "offline",
-        "fps": 10,
-        "resolution": "640x480 (VGA)",
-        "bitrate": "1.2 Mbps",
-        "bearing": 0,
-        "fov_angle": 75,
-        "lens_type": "Smartphone Ultra-Wide Lens",
-        "stream_url": "/mobile-cam?cam_id=CAM-MOBILE-01",
-    },
 ]
 
 @router.get("", response_model=List[CameraNodeResponse])
