@@ -9,7 +9,6 @@ from backend.routes.alerts import router as alerts_router
 from backend.routes.cameras import router as cameras_router
 from backend.routes.websocket import router as ws_router
 from backend.routes.live_stream import router as live_stream_router
-from backend.routes.camera_ingest import router as camera_ingest_router
 from backend.services.detection_service import start_detection_loop
 
 logging.basicConfig(
@@ -120,7 +119,6 @@ app.add_middleware(
 app.include_router(cameras_router, prefix=settings.API_V1_PREFIX)
 app.include_router(alerts_router, prefix=settings.API_V1_PREFIX)
 app.include_router(live_stream_router, prefix=settings.API_V1_PREFIX)
-app.include_router(camera_ingest_router)
 app.include_router(ws_router)
 
 @app.get("/")

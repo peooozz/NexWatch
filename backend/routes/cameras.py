@@ -69,28 +69,10 @@ DEFAULT_CAMERAS = [
         "lens_type": "Panoramic 180° Multi-sensor",
         "stream_url": "/videos/cam4.mp4",
     },
-    {
-        "id": "CAM-MOBILE-01",
-        "name": "Mobile Rapid Deployment Unit",
-        "zone": "Dynamic Patrol Perimeter",
-        "location_lat": 21.1385,
-        "location_lng": 79.0688,
-        "status": "offline",
-        "fps": 10,
-        "resolution": "640x480 (VGA)",
-        "bitrate": "1.2 Mbps",
-        "bearing": 0,
-        "fov_angle": 75,
-        "lens_type": "Smartphone Ultra-Wide Lens",
-        "stream_url": "/mobile-cam?cam_id=CAM-MOBILE-01",
-    },
 ]
 
 @router.get("", response_model=List[CameraNodeResponse])
 def get_all_cameras(db: Session = Depends(get_db)):
-    from backend.routes.camera_ingest import camera_ingest_registry
-    ingest_states = camera_ingest_registry.get_all_states()
-
     try:
         cams = db.query(CameraNode).all()
         if not cams:
@@ -99,27 +81,10 @@ def get_all_cameras(db: Session = Depends(get_db)):
                 db.add(cam)
             db.commit()
             cams = db.query(CameraNode).all()
-        
-        # Dynamically reflect real-time status for mobile streams
-        for cam in cams:
-            if cam.id in ingest_states:
-                m_state = ingest_states[cam.id]
-                cam.status = "online" if m_state["status"] == "online" else "offline"
-                if m_state.get("achieved_fps"):
-                    cam.fps = int(m_state["achieved_fps"])
         return cams
     except Exception:
         # Fallback to seeded nodes if DB is currently unmigrated
-        response_list = []
-        for d in DEFAULT_CAMERAS:
-            c = dict(d)
-            if c["id"] in ingest_states:
-                m_state = ingest_states[c["id"]]
-                c["status"] = "online" if m_state["status"] == "online" else "offline"
-                if m_state.get("achieved_fps"):
-                    c["fps"] = int(m_state["achieved_fps"])
-            response_list.append(CameraNodeResponse(**c))
-        return response_list
+        return [CameraNodeResponse(**d) for d in DEFAULT_CAMERAS]
 
 @router.get("/{camera_id}", response_model=CameraNodeResponse)
 def get_camera(camera_id: str, db: Session = Depends(get_db)):

@@ -16,8 +16,6 @@ export type Camera = {
   bearing: number; // direction facing in degrees
   streamUrl?: string;
   lensType: string;
-  sourceType?: "cctv" | "mobile_push";
-  lastSeenAt?: string;
 };
 
 export type AlertEventType =
