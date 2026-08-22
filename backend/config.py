@@ -25,6 +25,34 @@ class Settings(BaseSettings):
     FRAME_SAMPLE_RATE: int = int(os.getenv("FRAME_SAMPLE_RATE", "3"))  # Process every 3rd frame (~8-10 FPS)
     LIVE_MODEL_NAME: str = os.getenv("LIVE_MODEL_NAME", "yolo11s.pt")  # High-accuracy Small model for cloud CPU
 
+    # Push-Based Mobile Camera Ingestion Configuration
+    # Maps camera ID -> secret authentication key for field devices
+    CAMERA_INGEST_KEYS: Union[dict, str] = os.getenv(
+        "CAMERA_INGEST_KEYS",
+        '{"CAM-MOBILE-01": "nexwatch-mobile-key-alpha", "CAM-MOBILE-02": "nexwatch-mobile-key-beta"}'
+    )
+    REQUIRE_SECURE_WS: bool = os.getenv("REQUIRE_SECURE_WS", "false").lower() in ["1", "true", "yes"]
+    INGEST_QUEUE_MAXSIZE: int = int(os.getenv("INGEST_QUEUE_MAXSIZE", "2"))
+
+    @field_validator("CAMERA_INGEST_KEYS", mode="before")
+    @classmethod
+    def assemble_camera_keys(cls, v: Union[dict, str]) -> dict:
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            import json
+            try:
+                return json.loads(v)
+            except Exception:
+                # Support comma-separated key:value pairs like CAM-MOBILE-01:key1,CAM-MOBILE-02:key2
+                res = {}
+                for pair in v.split(","):
+                    if ":" in pair:
+                        k, val = pair.split(":", 1)
+                        res[k.strip()] = val.strip()
+                return res if res else {"CAM-MOBILE-01": "nexwatch-mobile-key-alpha"}
+        return {"CAM-MOBILE-01": "nexwatch-mobile-key-alpha"}
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
@@ -45,3 +73,4 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 settings = Settings()
+

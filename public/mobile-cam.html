@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0B0F17">
+  <title>NexWatch — Mobile Camera Ingest Node</title>
+  <style>
+    :root {
+      --bg-base: #06090E;
+      --bg-card: #0D131F;
+      --border: #1E293B;
+      --accent: #00E5FF;
+      --accent-glow: rgba(0, 229, 255, 0.25);
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-badge svg {
+      width: 24px;
+      height: 24px;
+      color: var(--accent);
+    }
+
+    .logo-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .logo-subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Outdoor High-Visibility Status Banner */
+    .status-banner {
+      padding: 14px 16px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .status-idle { background: #1E293B; color: #94A3B8; }
+    .status-connecting { background: #78350F; color: #FCD34D; }
+    .status-live { background: #064E3B; color: #6EE7B7; border-bottom: 2px solid var(--success); }
+    .status-error { background: #7F1D1D; color: #FCA5A5; }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-live .pulse-dot {
+      animation: pulse 1.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.3); }
+    }
+
+    /* Video Viewfinder Container */
+    .viewfinder-wrapper {
+      position: relative;
+      flex: 1;
+      min-height: 280px;
+      max-height: 55vh;
+      background: #000;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .viewfinder-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .hud-tag {
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: monospace;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .hud-fps { color: var(--accent); }
+    .hud-id { color: #F8FAFC; font-weight: bold; }
+
+    .camera-placeholder {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* Control Panel & Field Form */
+    .control-panel {
+      padding: 16px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .telemetry-card {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      padding: 8px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .telemetry-val {
+      font-size: 16px;
+      font-weight: 700;
+      font-family: monospace;
+      color: var(--accent);
+    }
+
+    .telemetry-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .config-accordion {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .config-header {
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .config-body {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .form-input {
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: monospace;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Touch-Friendly Action Buttons */
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: #00E5FF;
+      color: #000;
+      grid-column: span 2;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .btn-stop {
+      background: #EF4444;
+      color: #FFF;
+      grid-column: span 2;
+    }
+
+    .btn-secondary {
+      background: #1E293B;
+      color: #F8FAFC;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      padding: 12px;
+    }
+
+    /* Offscreen canvas */
+    #offscreen-canvas {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+        <circle cx="12" cy="13" r="4"></circle>
+      </svg>
+      <div>
+        <div class="logo-title">NexWatch Mobile Node</div>
+        <div class="logo-subtitle">Push-Based Edge Ingestion</div>
+      </div>
+    </div>
+    <div class="hud-tag hud-id" id="header-cam-id">CAM-MOBILE-01</div>
+  </header>
+
+  <!-- High-Contrast Status Banner -->
+  <div id="status-banner" class="status-banner status-idle">
+    <div class="pulse-dot"></div>
+    <span id="status-text">STANDBY — READY TO STREAM</span>
+  </div>
+
+  <!-- Viewfinder -->
+  <div class="viewfinder-wrapper">
+    <video id="viewfinder" playsinline autoplay muted></video>
+    <div class="camera-placeholder" id="cam-placeholder">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      <div>Tap <strong>START TRANSMITTING</strong> below to engage camera & WebSocket stream</div>
+    </div>
+    <div class="viewfinder-overlay">
+      <div class="hud-tag hud-fps" id="hud-fps">0.0 FPS</div>
+      <div class="hud-tag" id="hud-res">640x480</div>
+    </div>
+  </div>
+
+  <!-- Controls & Telemetry -->
+  <div class="control-panel">
+    
+    <div class="telemetry-grid">
+      <div class="telemetry-card">
+        <div class="telemetry-val" id="stat-sent">0</div>
+        <div class="telemetry-label">Frames Sent</div>
+      </div>
+      <div class="telemetry-card">
+        <div class="telemetry-val" id="stat-latency">-- ms</div>
+        <div class="telemetry-label">RTT Latency</div>
+      </div>
+      <div class="telemetry-card">
+        <div class="telemetry-val" id="stat-reconnects">0</div>
+        <div class="telemetry-label">Reconnects</div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <button id="btn-toggle-stream" class="btn btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg>
+      START TRANSMITTING
+    </button>
+
+    <div class="button-group">
+      <button id="btn-switch-cam" class="btn btn-secondary">
+        🔄 Switch Camera
+      </button>
+      <button id="btn-reload" class="btn btn-secondary" onclick="window.location.reload()">
+        ⚡ Reset Session
+      </button>
+    </div>
+
+    <!-- Configuration Accordion -->
+    <div class="config-accordion">
+      <div class="config-header" id="config-toggle">
+        <span>⚙️ Camera & Authentication Credentials</span>
+        <span id="config-arrow">▼</span>
+      </div>
+      <div class="config-body" id="config-body" style="display: none;">
+        <div class="form-group">
+          <label class="form-label">Camera Identifier (ID):</label>
+          <input type="text" id="input-cam-id" class="form-input" value="CAM-MOBILE-01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Authentication Secret Key:</label>
+          <input type="password" id="input-key" class="form-input" value="nexwatch-mobile-key-alpha">
+        </div>
+        <div class="form-group">
+          <label class="form-label">WebSocket Host (optional override):</label>
+          <input type="text" id="input-ws-host" class="form-input" placeholder="Auto-detected from current domain">
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <canvas id="offscreen-canvas" width="640" height="480"></canvas>
+
+  <script>
+    // ═════════════════════════════════════════════════════════════════════════
+    // Mobile Stream Capture & Push Engine
+    // ═════════════════════════════════════════════════════════════════════════
+
+    const videoEl = document.getElementById("viewfinder");
+    const placeholderEl = document.getElementById("cam-placeholder");
+    const canvas = document.getElementById("offscreen-canvas");
+    const ctx = canvas.getContext("2d");
+
+    const statusBanner = document.getElementById("status-banner");
+    const statusText = document.getElementById("status-text");
+    const btnToggle = document.getElementById("btn-toggle-stream");
+    const btnSwitchCam = document.getElementById("btn-switch-cam");
+
+    const statSentEl = document.getElementById("stat-sent");
+    const statLatencyEl = document.getElementById("stat-latency");
+    const statReconnectsEl = document.getElementById("stat-reconnects");
+    const hudFpsEl = document.getElementById("hud-fps");
+    const hudResEl = document.getElementById("hud-res");
+    const headerCamIdEl = document.getElementById("header-cam-id");
+
+    const inputCamId = document.getElementById("input-cam-id");
+    const inputKey = document.getElementById("input-key");
+    const inputWsHost = document.getElementById("input-ws-host");
+
+    // Stream State
+    let mediaStream = null;
+    let ws = null;
+    let isStreaming = false;
+    let currentFacingMode = "environment"; // "environment" = rear camera
+    let frameCounter = 0;
+    let reconnectAttempts = 0;
+    let reconnectTimer = null;
+    let sendLoopTimer = null;
+    let isAwaitingAck = false;
+    let lastAckTime = Date.now();
+    let frameTimes = [];
+
+    // Parse URL Parameters on Load
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("cam_id")) inputCamId.value = urlParams.get("cam_id");
+    if (urlParams.get("key")) inputKey.value = urlParams.get("key");
+    if (urlParams.get("host")) inputWsHost.value = urlParams.get("host");
+
+    headerCamIdEl.textContent = inputCamId.value;
+
+    inputCamId.addEventListener("input", () => {
+      headerCamIdEl.textContent = inputCamId.value || "CAM-MOBILE-01";
+    });
+
+    // Accordion Toggle
+    document.getElementById("config-toggle").addEventListener("click", () => {
+      const body = document.getElementById("config-body");
+      const arrow = document.getElementById("config-arrow");
+      const isOpen = body.style.display !== "none";
+      body.style.display = isOpen ? "none" : "flex";
+      arrow.textContent = isOpen ? "▼" : "▲";
+    });
+
+    function setStatus(type, message) {
+      statusBanner.className = "status-banner status-" + type;
+      statusText.textContent = message;
+    }
+
+    function getWebSocketUrl() {
+      const camId = encodeURIComponent(inputCamId.value.trim() || "CAM-MOBILE-01");
+      const key = encodeURIComponent(inputKey.value.trim() || "nexwatch-mobile-key-alpha");
+      
+      let host = inputWsHost.value.trim();
+      if (!host) {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        host = `${protocol}//${window.location.host}`;
+      } else if (!host.startsWith("ws://") && !host.startsWith("wss://")) {
+        host = (window.location.protocol === "https:" ? "wss://" : "ws://") + host;
+      }
+      return `${host}/ws/stream?cam_id=${camId}&key=${key}`;
+    }
+
+    // 1. Camera Initialization
+    async function startCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+      }
+
+      const constraints = {
+        audio: false,
+        video: {
+          facingMode: { ideal: currentFacingMode },
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 15, max: 20 }
+        }
+      };
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoEl.srcObject = mediaStream;
+        await videoEl.play();
+        placeholderEl.style.display = "none";
+        
+        const track = mediaStream.getVideoTracks()[0];
+        const settings = track.getSettings ? track.getSettings() : {};
+        if (settings.width && settings.height) {
+          hudResEl.textContent = `${settings.width}x${settings.height}`;
+          canvas.width = settings.width > 640 ? 640 : settings.width;
+          canvas.height = settings.height > 480 ? Math.round(640 * (settings.height / settings.width)) : settings.height;
+        }
+        return true;
+      } catch (err) {
+        console.error("Camera access failed:", err);
+        setStatus("error", "CAMERA PERMISSION DENIED / ERROR");
+        alert("Camera error: " + err.message + "\nPlease ensure you have granted camera permissions in your browser.");
+        return false;
+      }
+    }
+
+    function stopCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = null;
+      }
+      videoEl.srcObject = null;
+      placeholderEl.style.display = "flex";
+    }
+
+    // 2. WebSocket Connection & Auto-Reconnect
+    function connectWebSocket() {
+      if (ws) {
+        ws.close();
+      }
+
+      const wsUrl = getWebSocketUrl();
+      console.log("[NexWatch Mobile] Connecting outbound WebSocket:", wsUrl);
+      setStatus("connecting", `CONNECTING TO SERVER (${reconnectAttempts > 0 ? "RETRY #" + reconnectAttempts : "OUTBOUND"})...`);
+
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.binaryType = "blob";
+
+        ws.onopen = () => {
+          console.log("[NexWatch Mobile] 🟢 Connected and authenticated with cloud backend.");
+          reconnectAttempts = 0;
+          isAwaitingAck = false;
+          setStatus("live", "🟢 LIVE STREAMING TO CLOUD — ACTIVE");
+          startFrameCaptureLoop();
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.status === "ack") {
+              isAwaitingAck = false;
+              const rtt = Date.now() - lastAckTime;
+              statLatencyEl.textContent = `${rtt} ms`;
+              if (data.fps) {
+                hudFpsEl.textContent = `${data.fps} FPS`;
+              }
+            }
+          } catch (e) {}
+        };
+
+        ws.onerror = (e) => {
+          console.warn("[NexWatch Mobile] WebSocket error:", e);
+        };
+
+        ws.onclose = (event) => {
+          console.warn("[NexWatch Mobile] WebSocket disconnected. Code:", event.code, "Reason:", event.reason);
+          stopFrameCaptureLoop();
+
+          if (!isStreaming) {
+            setStatus("idle", "STANDBY — READY TO STREAM");
+            return;
+          }
+
+          if (event.code === 4001) {
+            setStatus("error", "AUTHENTICATION FAILED (INVALID KEY / ID)");
+            stopStreamingSession();
+            alert("Authentication Error: Invalid Camera ID or Secret Key.\nPlease check credentials in settings.");
+            return;
+          }
+
+          reconnectAttempts++;
+          statReconnectsEl.textContent = reconnectAttempts;
+          // Exponential backoff (1s, 2s, 4s, 8s, capped at 15s)
+          const delay = Math.min(15000, Math.pow(2, reconnectAttempts) * 1000);
+          setStatus("connecting", `CONNECTION DROPPED. RECONNECTING IN ${Math.round(delay/1000)}s...`);
+          
+          clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(() => {
+            if (isStreaming) connectWebSocket();
+          }, delay);
+        };
+      } catch (err) {
+        console.error("WebSocket instantiation error:", err);
+      }
+    }
+
+    // 3. Throttled Frame Capture Loop (8-10 FPS, Non-Overlapping)
+    function startFrameCaptureLoop() {
+      stopFrameCaptureLoop();
+
+      // 100ms interval = ~10 FPS target
+      sendLoopTimer = setInterval(() => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        if (!mediaStream || videoEl.paused || videoEl.ended) return;
+
+        // Non-overlapping send loop: Skip frame if previous frame is still awaiting ACK / sending
+        if (isAwaitingAck) {
+          // If ack timed out (> 1.5s), unblock pipeline
+          if (Date.now() - lastAckTime > 1500) {
+            isAwaitingAck = false;
+          } else {
+            return;
+          }
+        }
+
+        try {
+          ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+          isAwaitingAck = true;
+          lastAckTime = Date.now();
+
+          // High-efficiency JPEG compression (quality 0.65)
+          canvas.toBlob((blob) => {
+            if (blob && ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(blob);
+              frameCounter++;
+              statSentEl.textContent = frameCounter;
+
+              // Calculate local FPS
+              const now = Date.now();
+              frameTimes.push(now);
+              if (frameTimes.length > 20) frameTimes.shift();
+              if (frameTimes.length > 2) {
+                const duration = (frameTimes[frameTimes.length - 1] - frameTimes[0]) / 1000;
+                if (duration > 0) {
+                  hudFpsEl.textContent = `${((frameTimes.length - 1) / duration).toFixed(1)} FPS`;
+                }
+              }
+            } else {
+              isAwaitingAck = false;
+            }
+          }, "image/jpeg", 0.65);
+
+        } catch (err) {
+          console.error("Frame capture error:", err);
+          isAwaitingAck = false;
+        }
+      }, 100);
+    }
+
+    function stopFrameCaptureLoop() {
+      if (sendLoopTimer) {
+        clearInterval(sendLoopTimer);
+        sendLoopTimer = null;
+      }
+      isAwaitingAck = false;
+    }
+
+    // 4. Session Start / Stop Handler
+    async function startStreamingSession() {
+      btnToggle.disabled = true;
+      const cameraOk = await startCamera();
+      if (!cameraOk) {
+        btnToggle.disabled = false;
+        return;
+      }
+
+      isStreaming = true;
+      btnToggle.textContent = "■ STOP TRANSMITTING";
+      btnToggle.className = "btn btn-stop";
+      btnToggle.disabled = false;
+
+      connectWebSocket();
+    }
+
+    function stopStreamingSession() {
+      isStreaming = false;
+      clearTimeout(reconnectTimer);
+      stopFrameCaptureLoop();
+      stopCamera();
+
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+
+      btnToggle.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        START TRANSMITTING
+      `;
+      btnToggle.className = "btn btn-primary";
+      setStatus("idle", "STANDBY — READY TO STREAM");
+    }
+
+    btnToggle.addEventListener("click", () => {
+      if (isStreaming) {
+        stopStreamingSession();
+      } else {
+        startStreamingSession();
+      }
+    });
+
+    btnSwitchCam.addEventListener("click", async () => {
+      currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+      if (isStreaming) {
+        await startCamera();
+      }
+    });
+
+  </script>
+</body>
+</html>
